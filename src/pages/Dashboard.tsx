@@ -1,4 +1,41 @@
 import React from 'react'
+import LocalPanel from '../components/LocalPanel'
+
+type TabKey = 'api' | 'video'
+
+type DashboardProps = {
+  tab: TabKey
+  isAuthed: boolean
+  accessToken: string
+  refreshToken: string
+  roomName: string
+  roomId: string
+  livekitToken: string
+  livekitWs: string
+  isConnected: boolean
+  micEnabled: boolean
+  cameraEnabled: boolean
+  micGain: number
+  outputVolume: number
+  shareLink: string
+  localMediaRef: React.RefObject<HTMLDivElement>
+  remoteMediaRef: React.RefObject<HTMLDivElement>
+  onTabChange: (tab: TabKey) => void
+  onLogout: () => void
+  onRoomNameChange: (value: string) => void
+  onRoomIdChange: (value: string) => void
+  onLivekitWsChange: (value: string) => void
+  onLivekitTokenChange: (value: string) => void
+  onCopyShareLink: () => void
+  onToggleMic: () => void
+  onToggleCamera: () => void
+  onMicGainChange: (value: number) => void
+  onOutputVolumeChange: (value: number) => void
+  onCreateRoom: (event: React.FormEvent<HTMLFormElement>) => void
+  onEndRoom: (event: React.SyntheticEvent) => void
+  onConnect: (event: React.FormEvent<HTMLFormElement>) => void
+  onDisconnect: () => void
+}
 
 export default function Dashboard({
   tab,
@@ -10,6 +47,10 @@ export default function Dashboard({
   livekitToken,
   livekitWs,
   isConnected,
+  micEnabled,
+  cameraEnabled,
+  micGain,
+  outputVolume,
   shareLink,
   localMediaRef,
   remoteMediaRef,
@@ -20,11 +61,15 @@ export default function Dashboard({
   onLivekitWsChange,
   onLivekitTokenChange,
   onCopyShareLink,
+  onToggleMic,
+  onToggleCamera,
+  onMicGainChange,
+  onOutputVolumeChange,
   onCreateRoom,
   onEndRoom,
   onConnect,
   onDisconnect
-}) {
+}: DashboardProps) {
   return (
     <>
       <div className="tabs">
@@ -42,34 +87,25 @@ export default function Dashboard({
         <main className="grid">
           <section className="card">
             <h2>Session</h2>
-            <div className="mono">Access: {accessToken ? accessToken.slice(0, 24) + '...' : '—'}</div>
-            <div className="mono">Refresh: {refreshToken ? refreshToken.slice(0, 24) + '...' : '—'}</div>
             <button type="button" className="ghost" onClick={onLogout}>Logout</button>
           </section>
 
           <section className="card">
-            <h2>Create room</h2>
-            <form onSubmit={onCreateRoom}>
+            <h2>Room management</h2>
+            <form onSubmit={onCreateRoom} className="inline-actions">
               <label>
                 Room name
                 <input value={roomName} onChange={(e) => onRoomNameChange(e.target.value)} />
               </label>
-              <button type="submit">Create</button>
+              <div className="actions">
+                <button type="submit">Create</button>
+                <button type="button" className="danger" onClick={onEndRoom}>End room</button>
+              </div>
             </form>
             <div className="mono">Room ID: {roomId || '—'}</div>
-          </section>
-
-          <section className="card">
-            <h2>End room</h2>
-            <form onSubmit={onEndRoom}>
-              <label>
-                Room ID
-                <input value={roomId} onChange={(e) => onRoomIdChange(e.target.value)} />
-              </label>
-              <button type="submit" className="danger">End room</button>
-            </form>
             <div className="hint">Use this when the host finishes the call.</div>
           </section>
+
         </main>
       )}
 
@@ -90,25 +126,32 @@ export default function Dashboard({
                 LiveKit token
                 <input value={livekitToken} readOnly />
               </label>
-            <div className="actions">
-              <button type="submit" disabled={isConnected}>Connect</button>
-              <button type="button" className="ghost" onClick={onDisconnect} disabled={!isConnected}>Disconnect</button>
-            </div>
-          </form>
-          <div className="hint">LiveKit token is requested automatically when you connect.</div>
-          <label>
-            Share link
-            <input value={shareLink || ''} readOnly />
+              <div className="actions">
+                <button type="submit" disabled={isConnected}>Connect</button>
+                <button type="button" className="ghost" onClick={onDisconnect} disabled={!isConnected}>Disconnect</button>
+              </div>
+            </form>
+            <div className="hint">LiveKit token is requested automatically when you connect.</div>
+            <label>
+              Share link
+              <input value={shareLink || ''} readOnly />
             </label>
             <div className="actions">
               <button type="button" onClick={onCopyShareLink} disabled={!shareLink}>Copy link</button>
             </div>
           </section>
 
-          <section className="card">
-            <h2>Local</h2>
-            <div className="media-grid" ref={localMediaRef} />
-          </section>
+          <LocalPanel
+            micEnabled={micEnabled}
+            cameraEnabled={cameraEnabled}
+            micGain={micGain}
+            outputVolume={outputVolume}
+            localMediaRef={localMediaRef}
+            onToggleMic={onToggleMic}
+            onToggleCamera={onToggleCamera}
+            onMicGainChange={onMicGainChange}
+            onOutputVolumeChange={onOutputVolumeChange}
+          />
 
           <section className="card">
             <h2>Remote</h2>

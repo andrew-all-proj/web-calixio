@@ -1,14 +1,30 @@
-import React, { useMemo, useRef, useState, useEffect } from 'react'
-import { NavLink, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
-import { Room, RoomEvent, createLocalTracks } from 'livekit-client'
-import Dashboard from './pages/Dashboard.jsx'
-import Login from './pages/Login.jsx'
-import Register from './pages/Register.jsx'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import {
+  LocalAudioTrack,
+  LocalVideoTrack,
+  Room,
+  RoomEvent,
+  createLocalTracks
+} from 'livekit-client'
+import { useLocation, useNavigate } from 'react-router-dom'
 
 const API_BASE = import.meta.env.VITE_API_BASE || '/api'
 const LIVEKIT_WS = import.meta.env.VITE_LIVEKIT_WS || 'ws://localhost:7880'
 const ACCESS_KEY = 'calixio_access_token'
 const REFRESH_KEY = 'calixio_refresh_token'
+
+type TabKey = 'api' | 'video'
+
+type ApiError = Error & { status?: number; payload?: unknown }
+
+type ParticipantLike = { sid?: string; identity?: string } | null | undefined
+
+function getErrorMessage(err: unknown, fallback = 'request_failed') {
+  if (err instanceof Error && err.message) {
+    return err.message
+  }
+  return fallback
+}
 
 function loadAccessToken() {
   return localStorage.getItem(ACCESS_KEY) || ''
@@ -18,7 +34,7 @@ function loadRefreshToken() {
   return localStorage.getItem(REFRESH_KEY) || ''
 }
 
-function saveAccessToken(token) {
+function saveAccessToken(token: string | null) {
   if (token) {
     localStorage.setItem(ACCESS_KEY, token)
   } else {
@@ -26,7 +42,7 @@ function saveAccessToken(token) {
   }
 }
 
-function saveRefreshToken(token) {
+function saveRefreshToken(token: string | null) {
   if (token) {
     localStorage.setItem(REFRESH_KEY, token)
   } else {
@@ -34,7 +50,7 @@ function saveRefreshToken(token) {
   }
 }
 
-async function apiFetch(path, options = {}) {
+async function apiFetch(path: string, options: RequestInit = {}) {
   const res = await fetch(`${API_BASE}${path}`, {
     headers: {
       'Content-Type': 'application/json',
@@ -42,9 +58,9 @@ async function apiFetch(path, options = {}) {
     },
     ...options
   })
-  const data = await res.json().catch(() => ({}))
+  const data = (await res.json().catch(() => ({}))) as Record<string, any>
   if (!res.ok) {
-    const err = new Error(data.error || 'request_failed')
+    const err = new Error(data.error || 'request_failed') as ApiError
     err.status = res.status
     err.payload = data
     throw err
@@ -52,7 +68,7 @@ async function apiFetch(path, options = {}) {
   return data
 }
 
-function ensureParticipantBlock(root, participant) {
+function ensureParticipantBlock(root: HTMLElement | null, participant: ParticipantLike) {
   if (!root) return null
   const pid = participant?.sid || participant?.identity || 'unknown'
   let block = root.querySelector(`[data-participant-sid="${pid}"]`)
@@ -75,7 +91,7 @@ function ensureParticipantBlock(root, participant) {
   return block
 }
 
-function cleanupParticipantBlock(root, participant) {
+function cleanupParticipantBlock(root: HTMLElement | null, participant: ParticipantLike) {
   if (!root) return
   const pid = participant?.sid || participant?.identity || 'unknown'
   const block = root.querySelector(`[data-participant-sid="${pid}"]`)
@@ -86,13 +102,62 @@ function cleanupParticipantBlock(root, participant) {
   }
 }
 
-export default function App() {
+export type AppState = {
+  tab: TabKey
+  loginEmail: string
+  loginPassword: string
+  registerName: string
+  registerEmail: string
+  registerPassword: string
+  roomName: string
+  roomId: string
+  accessToken: string
+  refreshToken: string
+  livekitToken: string
+  livekitWs: string
+  isConnected: boolean
+  micEnabled: boolean
+  cameraEnabled: boolean
+  micGain: number
+  outputVolume: number
+  status: string
+  error: string
+  shareLink: string
+  isAuthed: boolean
+  allowGuestVideo: boolean
+  localMediaRef: React.RefObject<HTMLDivElement>
+  remoteMediaRef: React.RefObject<HTMLDivElement>
+  onTabChange: (tab: TabKey) => void
+  onLogin: (event: React.FormEvent<HTMLFormElement>) => void
+  onRegister: (event: React.FormEvent<HTMLFormElement>) => void
+  onLogout: () => void
+  onCreateRoom: (event: React.FormEvent<HTMLFormElement>) => void
+  onEndRoom: (event: React.SyntheticEvent) => void
+  onConnect: (event: React.FormEvent<HTMLFormElement>) => void
+  onDisconnect: () => void
+  onCopyShareLink: () => void
+  onToggleMic: () => void
+  onToggleCamera: () => void
+  onMicGainChange: (value: number) => void
+  onOutputVolumeChange: (value: number) => void
+  setLoginEmail: (value: string) => void
+  setLoginPassword: (value: string) => void
+  setRegisterName: (value: string) => void
+  setRegisterEmail: (value: string) => void
+  setRegisterPassword: (value: string) => void
+  setRoomName: (value: string) => void
+  setRoomId: (value: string) => void
+  setLivekitWs: (value: string) => void
+  setLivekitToken: (value: string) => void
+}
+
+export default function useAppState(): AppState {
   const navigate = useNavigate()
   const location = useLocation()
   const initialParams = new URLSearchParams(location.search)
   const initialRoomId = initialParams.get('roomId') || ''
-  const initialTab = initialParams.get('tab') || (initialRoomId ? 'video' : 'api')
-  const [tab, setTab] = useState(initialTab)
+  const initialTab = (initialParams.get('tab') || (initialRoomId ? 'video' : 'api')) as TabKey
+  const [tab, setTab] = useState<TabKey>(initialTab)
   const [loginEmail, setLoginEmail] = useState('')
   const [loginPassword, setLoginPassword] = useState('')
   const [registerName, setRegisterName] = useState('')
@@ -105,11 +170,19 @@ export default function App() {
   const [livekitToken, setLivekitToken] = useState('')
   const [livekitWs, setLivekitWs] = useState(LIVEKIT_WS)
   const [isConnected, setIsConnected] = useState(false)
+  const [micEnabled, setMicEnabled] = useState(true)
+  const [cameraEnabled, setCameraEnabled] = useState(true)
+  const [micGain, setMicGain] = useState(1)
+  const [outputVolume, setOutputVolume] = useState(1)
   const [status, setStatus] = useState('')
   const [error, setError] = useState('')
-  const roomRef = useRef(null)
-  const localMediaRef = useRef(null)
-  const remoteMediaRef = useRef(null)
+  const roomRef = useRef<Room | null>(null)
+  const localMediaRef = useRef<HTMLDivElement | null>(null)
+  const remoteMediaRef = useRef<HTMLDivElement | null>(null)
+  const localAudioTrackRef = useRef<LocalAudioTrack | null>(null)
+  const localVideoTrackRef = useRef<LocalVideoTrack | null>(null)
+  const audioContextRef = useRef<AudioContext | null>(null)
+  const gainNodeRef = useRef<GainNode | null>(null)
 
   useEffect(() => {
     const params = new URLSearchParams(location.search)
@@ -125,7 +198,7 @@ export default function App() {
     }
   }, [location.search])
 
-  function updateTokens(access, refresh) {
+  function updateTokens(access: string, refresh: string) {
     saveAccessToken(access)
     saveRefreshToken(refresh)
     setAccessToken(access || '')
@@ -134,7 +207,7 @@ export default function App() {
 
   async function refreshAccessToken() {
     if (!refreshToken) {
-      const err = new Error('missing_refresh')
+      const err = new Error('missing_refresh') as ApiError
       err.status = 401
       throw err
     }
@@ -146,7 +219,7 @@ export default function App() {
     return data.access_token
   }
 
-  async function apiFetchAuth(path, options = {}) {
+  async function apiFetchAuth(path: string, options: RequestInit = {}) {
     let tokenToUse = accessToken
     if (!tokenToUse && refreshToken) {
       tokenToUse = await refreshAccessToken()
@@ -160,7 +233,8 @@ export default function App() {
         }
       })
     } catch (err) {
-      if (err.status !== 401 || !refreshToken) {
+      const apiErr = err as ApiError
+      if (apiErr.status !== 401 || !refreshToken) {
         throw err
       }
       try {
@@ -179,7 +253,7 @@ export default function App() {
     }
   }
 
-  async function handleLogin(e) {
+  async function onLogin(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setError('')
     setStatus('Logging in...')
@@ -192,12 +266,12 @@ export default function App() {
       setStatus('Logged in')
       navigate('/', { replace: true })
     } catch (err) {
-      setError(err.message)
+      setError(getErrorMessage(err))
       setStatus('')
     }
   }
 
-  async function handleRegister(e) {
+  async function onRegister(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setError('')
     setStatus('Registering...')
@@ -209,12 +283,12 @@ export default function App() {
       setStatus('Registered. Please log in to get tokens.')
       navigate('/login', { replace: true })
     } catch (err) {
-      setError(err.message)
+      setError(getErrorMessage(err))
       setStatus('')
     }
   }
 
-  async function handleCreateRoom(e) {
+  async function onCreateRoom(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setError('')
     setStatus('Creating room...')
@@ -226,12 +300,12 @@ export default function App() {
       setRoomId(data.id)
       setStatus(`Room created: ${data.name}`)
     } catch (err) {
-      setError(err.message)
+      setError(getErrorMessage(err))
       setStatus('')
     }
   }
 
-  async function handleEndRoom(e) {
+  async function onEndRoom(e: React.SyntheticEvent) {
     e.preventDefault()
     setError('')
     setStatus('Ending room...')
@@ -239,12 +313,12 @@ export default function App() {
       await apiFetchAuth(`/rooms/${roomId}/end`, { method: 'POST' })
       setStatus('Room ended')
     } catch (err) {
-      setError(err.message)
+      setError(getErrorMessage(err))
       setStatus('')
     }
   }
 
-  function handleLogout() {
+  function onLogout() {
     updateTokens('', '')
     setStatus('Logged out')
   }
@@ -263,13 +337,13 @@ export default function App() {
       setStatus('LiveKit token issued')
       return data.token
     } catch (err) {
-      setError(err.message)
+      setError(getErrorMessage(err))
       setStatus('')
       return ''
     }
   }
 
-  async function handleConnect(e) {
+  async function onConnect(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setError('')
     if (isConnected) {
@@ -320,9 +394,21 @@ export default function App() {
       await room.connect(livekitWs, tokenToUse)
       const localTracks = await createLocalTracks({ audio: true, video: true })
       for (const track of localTracks) {
+        if (track.kind === 'audio') {
+          localAudioTrackRef.current = track as LocalAudioTrack
+        }
+        if (track.kind === 'video') {
+          localVideoTrackRef.current = track as LocalVideoTrack
+        }
         await room.localParticipant.publishTrack(track)
+        if (track.kind === 'audio') {
+          await applyMicGain(track as LocalAudioTrack)
+        }
         const element = track.attach()
         element.dataset.trackSid = track.sid
+        if (element instanceof HTMLMediaElement) {
+          element.volume = outputVolume
+        }
         if (localMediaRef.current) {
           localMediaRef.current.appendChild(element)
         }
@@ -330,14 +416,14 @@ export default function App() {
       setIsConnected(true)
       setStatus('Connected to LiveKit')
     } catch (err) {
-      setError(err.message || 'livekit_connect_failed')
+      setError(getErrorMessage(err, 'livekit_connect_failed'))
       setStatus('')
       room.disconnect()
       roomRef.current = null
     }
   }
 
-  function handleDisconnect() {
+  function onDisconnect() {
     if (!roomRef.current) {
       return
     }
@@ -353,9 +439,80 @@ export default function App() {
     }
   }
 
+  function applyOutputVolume(volume: number) {
+    if (!localMediaRef.current) {
+      return
+    }
+    const media = localMediaRef.current.querySelectorAll('audio, video')
+    media.forEach((element) => {
+      ;(element as HTMLMediaElement).volume = volume
+    })
+  }
+
+  async function applyMicGain(track: LocalAudioTrack) {
+    if (!audioContextRef.current) {
+      audioContextRef.current = new AudioContext()
+    }
+    const context = audioContextRef.current
+    if (context.state === 'suspended') {
+      try {
+        await context.resume()
+      } catch (err) {
+        setError(getErrorMessage(err, 'audio_context_failed'))
+      }
+    }
+    const source = context.createMediaStreamSource(new MediaStream([track.mediaStreamTrack]))
+    const gain = context.createGain()
+    gain.gain.value = micGain
+    const destination = context.createMediaStreamDestination()
+    source.connect(gain).connect(destination)
+    gainNodeRef.current = gain
+    const processedTrack = destination.stream.getAudioTracks()[0]
+    if (processedTrack) {
+      await track.replaceTrack(processedTrack, true)
+    }
+  }
+
+  async function onToggleMic() {
+    const next = !micEnabled
+    setMicEnabled(next)
+    if (!roomRef.current) {
+      return
+    }
+    try {
+      await roomRef.current.localParticipant.setMicrophoneEnabled(next)
+    } catch (err) {
+      setError(getErrorMessage(err, 'mic_toggle_failed'))
+    }
+  }
+
+  async function onToggleCamera() {
+    const next = !cameraEnabled
+    setCameraEnabled(next)
+    if (!roomRef.current) {
+      return
+    }
+    try {
+      await roomRef.current.localParticipant.setCameraEnabled(next)
+    } catch (err) {
+      setError(getErrorMessage(err, 'camera_toggle_failed'))
+    }
+  }
+
+  function onMicGainChange(value: number) {
+    setMicGain(value)
+    if (gainNodeRef.current) {
+      gainNodeRef.current.gain.value = value
+    }
+  }
+
+  function onOutputVolumeChange(value: number) {
+    setOutputVolume(value)
+    applyOutputVolume(value)
+  }
+
   const isAuthed = Boolean(accessToken || refreshToken)
   const allowGuestVideo = Boolean(roomId)
-  const navClass = ({ isActive }) => (isActive ? 'tab active' : 'tab')
 
   const shareLink = useMemo(() => {
     if (!roomId) {
@@ -368,7 +525,7 @@ export default function App() {
     return `${base}?${params.toString()}`
   }, [location.pathname, roomId])
 
-  function handleTabChange(nextTab) {
+  function onTabChange(nextTab: TabKey) {
     setTab(nextTab)
     if (nextTab !== 'video') {
       return
@@ -385,7 +542,7 @@ export default function App() {
     navigate({ pathname: location.pathname, search: search ? `?${search}` : '' }, { replace: true })
   }
 
-  async function handleCopyShareLink() {
+  async function onCopyShareLink() {
     if (!shareLink || !navigator?.clipboard) {
       return
     }
@@ -393,95 +550,56 @@ export default function App() {
       await navigator.clipboard.writeText(shareLink)
       setStatus('Share link copied')
     } catch (err) {
-      setError(err.message || 'copy_failed')
+      setError(getErrorMessage(err, 'copy_failed'))
     }
   }
 
-  return (
-    <div className="app">
-      <header className="header">
-        <div>
-          <h1>Calixio LiveKit MVP</h1>
-          <p>Quick local UI for auth, room management, and LiveKit token generation.</p>
-        </div>
-        <div className="pill">API: {API_BASE}</div>
-      </header>
-
-      <nav className="tabs">
-        <NavLink to="/login" className={navClass}>Login</NavLink>
-        <NavLink to="/register" className={navClass}>Register</NavLink>
-        <NavLink to="/" className={navClass}>App</NavLink>
-      </nav>
-
-      <Routes>
-        <Route
-          path="/login"
-          element={isAuthed ? <Navigate to="/" replace /> : (
-            <Login
-              email={loginEmail}
-              password={loginPassword}
-              accessToken={accessToken}
-              refreshToken={refreshToken}
-              onEmailChange={setLoginEmail}
-              onPasswordChange={setLoginPassword}
-              onLogin={handleLogin}
-              onClearTokens={handleLogout}
-            />
-          )}
-        />
-        <Route
-          path="/register"
-          element={isAuthed ? <Navigate to="/" replace /> : (
-            <Register
-              name={registerName}
-              email={registerEmail}
-              password={registerPassword}
-              onNameChange={setRegisterName}
-              onEmailChange={setRegisterEmail}
-              onPasswordChange={setRegisterPassword}
-              onRegister={handleRegister}
-            />
-          )}
-        />
-        <Route
-          path="/"
-          element={isAuthed || allowGuestVideo ? (
-            <Dashboard
-              tab={tab}
-              isAuthed={isAuthed}
-              accessToken={accessToken}
-              refreshToken={refreshToken}
-              roomName={roomName}
-              roomId={roomId}
-              livekitToken={livekitToken}
-              livekitWs={livekitWs}
-              isConnected={isConnected}
-              shareLink={shareLink}
-              localMediaRef={localMediaRef}
-              remoteMediaRef={remoteMediaRef}
-              onTabChange={handleTabChange}
-              onLogout={handleLogout}
-              onRoomNameChange={setRoomName}
-              onRoomIdChange={setRoomId}
-              onLivekitWsChange={setLivekitWs}
-              onLivekitTokenChange={setLivekitToken}
-              onCopyShareLink={handleCopyShareLink}
-              onCreateRoom={handleCreateRoom}
-              onEndRoom={handleEndRoom}
-              onConnect={handleConnect}
-              onDisconnect={handleDisconnect}
-            />
-          ) : <Navigate to="/login" replace />}
-        />
-      </Routes>
-
-      <footer className="footer">
-        {status && <div className="status">{status}</div>}
-        {error && <div className="error">Error: {error}</div>}
-        <div className="note">
-          To connect a real video client, use LiveKit Meet or SDK and pass the token above.
-        </div>
-      </footer>
-    </div>
-  )
+  return {
+    tab,
+    loginEmail,
+    loginPassword,
+    registerName,
+    registerEmail,
+    registerPassword,
+    roomName,
+    roomId,
+    accessToken,
+    refreshToken,
+    livekitToken,
+    livekitWs,
+    isConnected,
+    micEnabled,
+    cameraEnabled,
+    micGain,
+    outputVolume,
+    status,
+    error,
+    shareLink,
+    isAuthed,
+    allowGuestVideo,
+    localMediaRef,
+    remoteMediaRef,
+    onTabChange,
+    onLogin,
+    onRegister,
+    onLogout,
+    onCreateRoom,
+    onEndRoom,
+    onConnect,
+    onDisconnect,
+    onCopyShareLink,
+    onToggleMic,
+    onToggleCamera,
+    onMicGainChange,
+    onOutputVolumeChange,
+    setLoginEmail,
+    setLoginPassword,
+    setRegisterName,
+    setRegisterEmail,
+    setRegisterPassword,
+    setRoomName,
+    setRoomId,
+    setLivekitWs,
+    setLivekitToken
+  }
 }

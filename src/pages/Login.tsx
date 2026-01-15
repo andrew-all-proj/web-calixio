@@ -1,5 +1,16 @@
 import React from 'react'
 
+type LoginProps = {
+  email: string
+  password: string
+  accessToken: string
+  refreshToken: string
+  onEmailChange: (value: string) => void
+  onPasswordChange: (value: string) => void
+  onLogin: (event: React.FormEvent<HTMLFormElement>) => void
+  onClearTokens: () => void
+}
+
 export default function Login({
   email,
   password,
@@ -9,7 +20,7 @@ export default function Login({
   onPasswordChange,
   onLogin,
   onClearTokens
-}) {
+}: LoginProps) {
   return (
     <main className="auth-wrap">
       <section className="card auth-card">

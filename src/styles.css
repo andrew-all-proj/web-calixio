@@ -153,6 +153,23 @@ button.danger {
   gap: 10px;
 }
 
+.inline-actions {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.inline-actions label {
+  flex: 1;
+  min-width: 180px;
+}
+
+.inline-actions .actions {
+  align-items: stretch;
+  flex-wrap: nowrap;
+}
+
 .mono {
   font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 12px;

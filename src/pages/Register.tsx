@@ -1,5 +1,15 @@
 import React from 'react'
 
+type RegisterProps = {
+  name: string
+  email: string
+  password: string
+  onNameChange: (value: string) => void
+  onEmailChange: (value: string) => void
+  onPasswordChange: (value: string) => void
+  onRegister: (event: React.FormEvent<HTMLFormElement>) => void
+}
+
 export default function Register({
   name,
   email,
@@ -8,7 +18,7 @@ export default function Register({
   onEmailChange,
   onPasswordChange,
   onRegister
-}) {
+}: RegisterProps) {
   return (
     <main className="auth-wrap">
       <section className="card auth-card">
