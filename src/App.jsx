@@ -1,5 +1,5 @@
-import React, { useRef, useState } from 'react'
-import { NavLink, Navigate, Route, Routes, useNavigate } from 'react-router-dom'
+import React, { useMemo, useRef, useState, useEffect } from 'react'
+import { NavLink, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { Room, RoomEvent, createLocalTracks } from 'livekit-client'
 import Dashboard from './pages/Dashboard.jsx'
 import Login from './pages/Login.jsx'
@@ -88,14 +88,18 @@ function cleanupParticipantBlock(root, participant) {
 
 export default function App() {
   const navigate = useNavigate()
-  const [tab, setTab] = useState('api')
+  const location = useLocation()
+  const initialParams = new URLSearchParams(location.search)
+  const initialRoomId = initialParams.get('roomId') || ''
+  const initialTab = initialParams.get('tab') || (initialRoomId ? 'video' : 'api')
+  const [tab, setTab] = useState(initialTab)
   const [loginEmail, setLoginEmail] = useState('')
   const [loginPassword, setLoginPassword] = useState('')
   const [registerName, setRegisterName] = useState('')
   const [registerEmail, setRegisterEmail] = useState('')
   const [registerPassword, setRegisterPassword] = useState('')
   const [roomName, setRoomName] = useState('demo')
-  const [roomId, setRoomId] = useState('')
+  const [roomId, setRoomId] = useState(initialRoomId)
   const [accessToken, setAccessToken] = useState(loadAccessToken())
   const [refreshToken, setRefreshToken] = useState(loadRefreshToken())
   const [livekitToken, setLivekitToken] = useState('')
@@ -106,6 +110,20 @@ export default function App() {
   const roomRef = useRef(null)
   const localMediaRef = useRef(null)
   const remoteMediaRef = useRef(null)
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search)
+    const paramRoomId = params.get('roomId')
+    const paramTab = params.get('tab')
+    if (paramRoomId !== null) {
+      setRoomId(paramRoomId)
+    }
+    if (paramTab === 'video' || paramRoomId) {
+      setTab('video')
+    } else if (paramTab === 'api') {
+      setTab('api')
+    }
+  }, [location.search])
 
   function updateTokens(access, refresh) {
     saveAccessToken(access)
@@ -213,20 +231,6 @@ export default function App() {
     }
   }
 
-  async function handleJoinRoom(e) {
-    e.preventDefault()
-    setError('')
-    setStatus('Joining room...')
-    try {
-      const data = await apiFetchAuth(`/rooms/${roomId}/join`, { method: 'POST' })
-      setLivekitToken(data.token)
-      setStatus('LiveKit token issued')
-    } catch (err) {
-      setError(err.message)
-      setStatus('')
-    }
-  }
-
   async function handleEndRoom(e) {
     e.preventDefault()
     setError('')
@@ -245,14 +249,37 @@ export default function App() {
     setStatus('Logged out')
   }
 
+  async function requestLivekitToken() {
+    if (!roomId) {
+      setError('Room ID is missing')
+      return ''
+    }
+    setStatus('Requesting LiveKit token...')
+    try {
+      const data = accessToken || refreshToken
+        ? await apiFetchAuth(`/rooms/${roomId}/join`, { method: 'POST' })
+        : await apiFetch(`/rooms/${roomId}/join`, { method: 'POST' })
+      setLivekitToken(data.token)
+      setStatus('LiveKit token issued')
+      return data.token
+    } catch (err) {
+      setError(err.message)
+      setStatus('')
+      return ''
+    }
+  }
+
   async function handleConnect(e) {
     e.preventDefault()
     setError('')
-    if (!livekitToken) {
-      setError('LiveKit token is missing')
+    if (isConnected) {
       return
     }
-    if (isConnected) {
+    let tokenToUse = livekitToken
+    if (!tokenToUse) {
+      tokenToUse = await requestLivekitToken()
+    }
+    if (!tokenToUse) {
       return
     }
     setStatus('Connecting to LiveKit...')
@@ -290,7 +317,7 @@ export default function App() {
     })
 
     try {
-      await room.connect(livekitWs, livekitToken)
+      await room.connect(livekitWs, tokenToUse)
       const localTracks = await createLocalTracks({ audio: true, video: true })
       for (const track of localTracks) {
         await room.localParticipant.publishTrack(track)
@@ -327,7 +354,48 @@ export default function App() {
   }
 
   const isAuthed = Boolean(accessToken || refreshToken)
+  const allowGuestVideo = Boolean(roomId)
   const navClass = ({ isActive }) => (isActive ? 'tab active' : 'tab')
+
+  const shareLink = useMemo(() => {
+    if (!roomId) {
+      return ''
+    }
+    const params = new URLSearchParams()
+    params.set('tab', 'video')
+    params.set('roomId', roomId)
+    const base = typeof window === 'undefined' ? location.pathname : `${window.location.origin}${location.pathname}`
+    return `${base}?${params.toString()}`
+  }, [location.pathname, roomId])
+
+  function handleTabChange(nextTab) {
+    setTab(nextTab)
+    if (nextTab !== 'video') {
+      return
+    }
+    const params = new URLSearchParams(location.search)
+    params.set('tab', 'video')
+    if (roomId) {
+      params.set('roomId', roomId)
+    } else {
+      params.delete('roomId')
+    }
+    params.delete('livekitToken')
+    const search = params.toString()
+    navigate({ pathname: location.pathname, search: search ? `?${search}` : '' }, { replace: true })
+  }
+
+  async function handleCopyShareLink() {
+    if (!shareLink || !navigator?.clipboard) {
+      return
+    }
+    try {
+      await navigator.clipboard.writeText(shareLink)
+      setStatus('Share link copied')
+    } catch (err) {
+      setError(err.message || 'copy_failed')
+    }
+  }
 
   return (
     <div className="app">
@@ -377,9 +445,10 @@ export default function App() {
         />
         <Route
           path="/"
-          element={isAuthed ? (
+          element={isAuthed || allowGuestVideo ? (
             <Dashboard
               tab={tab}
+              isAuthed={isAuthed}
               accessToken={accessToken}
               refreshToken={refreshToken}
               roomName={roomName}
@@ -387,16 +456,17 @@ export default function App() {
               livekitToken={livekitToken}
               livekitWs={livekitWs}
               isConnected={isConnected}
+              shareLink={shareLink}
               localMediaRef={localMediaRef}
               remoteMediaRef={remoteMediaRef}
-              onTabChange={setTab}
+              onTabChange={handleTabChange}
               onLogout={handleLogout}
               onRoomNameChange={setRoomName}
               onRoomIdChange={setRoomId}
               onLivekitWsChange={setLivekitWs}
               onLivekitTokenChange={setLivekitToken}
+              onCopyShareLink={handleCopyShareLink}
               onCreateRoom={handleCreateRoom}
-              onJoinRoom={handleJoinRoom}
               onEndRoom={handleEndRoom}
               onConnect={handleConnect}
               onDisconnect={handleDisconnect}
