@@ -1,59 +1,41 @@
-import React from 'react'
-import { NavLink, Navigate, Route, Routes } from 'react-router-dom'
+import React, { useState } from 'react'
+import { NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import Dashboard from './pages/Dashboard'
 import Login from './pages/Login'
 import Register from './pages/Register'
-import useAppState from './hooks/useAppState'
+import { API_BASE } from './hooks/api'
+import { getErrorMessage } from './hooks/api'
+import useAuth from './hooks/useAuth'
+import useLivekit from './hooks/useLivekit'
+import useRooms from './hooks/useRooms'
+import useTabShare from './hooks/useTabShare'
 
 export default function App() {
-  const {
-    tab,
-    loginEmail,
-    loginPassword,
-    registerName,
-    registerEmail,
-    registerPassword,
-    roomName,
-    roomId,
-    accessToken,
-    refreshToken,
-    livekitToken,
-    livekitWs,
-    isConnected,
-    micEnabled,
-    cameraEnabled,
-    micGain,
-    outputVolume,
-    status,
-    error,
-    shareLink,
-    isAuthed,
-    allowGuestVideo,
-    localMediaRef,
-    remoteMediaRef,
-    onTabChange,
-    onLogin,
-    onRegister,
-    onLogout,
-    onCreateRoom,
-    onEndRoom,
-    onConnect,
-    onDisconnect,
-    onCopyShareLink,
-    onToggleMic,
-    onToggleCamera,
-    onMicGainChange,
-    onOutputVolumeChange,
-    setLoginEmail,
-    setLoginPassword,
-    setRegisterName,
-    setRegisterEmail,
-    setRegisterPassword,
-    setRoomName,
-    setRoomId,
-    setLivekitWs,
-    setLivekitToken
-  } = useAppState()
+  const [status, setStatus] = useState('')
+  const [error, setError] = useState('')
+  const location = useLocation()
+  const initialParams = new URLSearchParams(location.search)
+  const initialRoomId = initialParams.get('roomId') || ''
+  const auth = useAuth({ setStatus, setError })
+  const rooms = useRooms({
+    setStatus,
+    setError,
+    apiFetchAuth: auth.apiFetchAuth,
+    hasAuth: auth.isAuthed,
+    initialRoomId
+  })
+  const { tab, onTabChange, shareLink } = useTabShare({
+    roomId: rooms.roomId,
+    setRoomId: rooms.setRoomId
+  })
+  const livekit = useLivekit({
+    roomId: rooms.roomId,
+    livekitToken: rooms.livekitToken,
+    requestLivekitToken: rooms.requestLivekitToken,
+    setStatus,
+    setError
+  })
+  const allowGuestVideo = Boolean(rooms.roomId)
 
   const navClass = ({ isActive }: { isActive: boolean }) => (isActive ? 'tab active' : 'tab')
 
@@ -64,7 +46,7 @@ export default function App() {
           <h1>Calixio LiveKit MVP</h1>
           <p>Quick local UI for auth, room management, and LiveKit token generation.</p>
         </div>
-        <div className="pill">API: {import.meta.env.VITE_API_BASE || '/api'}</div>
+        <div className="pill">API: {API_BASE}</div>
       </header>
 
       <nav className="tabs">
@@ -76,68 +58,76 @@ export default function App() {
       <Routes>
         <Route
           path="/login"
-          element={isAuthed ? <Navigate to="/" replace /> : (
+          element={auth.isAuthed ? <Navigate to="/" replace /> : (
             <Login
-              email={loginEmail}
-              password={loginPassword}
-              accessToken={accessToken}
-              refreshToken={refreshToken}
-              onEmailChange={setLoginEmail}
-              onPasswordChange={setLoginPassword}
-              onLogin={onLogin}
-              onClearTokens={onLogout}
+              email={auth.loginEmail}
+              password={auth.loginPassword}
+              accessToken={auth.accessToken}
+              refreshToken={auth.refreshToken}
+              onEmailChange={auth.setLoginEmail}
+              onPasswordChange={auth.setLoginPassword}
+              onLogin={auth.onLogin}
+              onClearTokens={auth.onLogout}
             />
           )}
         />
         <Route
           path="/register"
-          element={isAuthed ? <Navigate to="/" replace /> : (
+          element={auth.isAuthed ? <Navigate to="/" replace /> : (
             <Register
-              name={registerName}
-              email={registerEmail}
-              password={registerPassword}
-              onNameChange={setRegisterName}
-              onEmailChange={setRegisterEmail}
-              onPasswordChange={setRegisterPassword}
-              onRegister={onRegister}
+              name={auth.registerName}
+              email={auth.registerEmail}
+              password={auth.registerPassword}
+              onNameChange={auth.setRegisterName}
+              onEmailChange={auth.setRegisterEmail}
+              onPasswordChange={auth.setRegisterPassword}
+              onRegister={auth.onRegister}
             />
           )}
         />
         <Route
           path="/"
-          element={isAuthed || allowGuestVideo ? (
+          element={auth.isAuthed || allowGuestVideo ? (
             <Dashboard
               tab={tab}
-              isAuthed={isAuthed}
-              accessToken={accessToken}
-              refreshToken={refreshToken}
-              roomName={roomName}
-              roomId={roomId}
-              livekitToken={livekitToken}
-              livekitWs={livekitWs}
-              isConnected={isConnected}
-              micEnabled={micEnabled}
-              cameraEnabled={cameraEnabled}
-              micGain={micGain}
-              outputVolume={outputVolume}
+              isAuthed={auth.isAuthed}
+              accessToken={auth.accessToken}
+              refreshToken={auth.refreshToken}
+              roomName={rooms.roomName}
+              roomId={rooms.roomId}
+              livekitToken={rooms.livekitToken}
+              livekitWs={livekit.livekitWs}
+              isConnected={livekit.isConnected}
+              micEnabled={livekit.micEnabled}
+              cameraEnabled={livekit.cameraEnabled}
+              micGain={livekit.micGain}
+              outputVolume={livekit.outputVolume}
               shareLink={shareLink}
-              localMediaRef={localMediaRef}
-              remoteMediaRef={remoteMediaRef}
+              localMediaRef={livekit.localMediaRef}
+              remoteMediaRef={livekit.remoteMediaRef}
               onTabChange={onTabChange}
-              onLogout={onLogout}
-              onRoomNameChange={setRoomName}
-              onRoomIdChange={setRoomId}
-              onLivekitWsChange={setLivekitWs}
-              onLivekitTokenChange={setLivekitToken}
-              onCopyShareLink={onCopyShareLink}
-              onToggleMic={onToggleMic}
-              onToggleCamera={onToggleCamera}
-              onMicGainChange={onMicGainChange}
-              onOutputVolumeChange={onOutputVolumeChange}
-              onCreateRoom={onCreateRoom}
-              onEndRoom={onEndRoom}
-              onConnect={onConnect}
-              onDisconnect={onDisconnect}
+              onLogout={auth.onLogout}
+              onRoomNameChange={rooms.setRoomName}
+              onRoomIdChange={rooms.setRoomId}
+              onLivekitWsChange={livekit.setLivekitWs}
+              onLivekitTokenChange={rooms.setLivekitToken}
+              onCopyShareLink={() => {
+                if (!shareLink || !navigator?.clipboard) {
+                  return
+                }
+                navigator.clipboard.writeText(shareLink).then(
+                  () => setStatus('Share link copied'),
+                  (err) => setError(getErrorMessage(err, 'copy_failed'))
+                )
+              }}
+              onToggleMic={livekit.onToggleMic}
+              onToggleCamera={livekit.onToggleCamera}
+              onMicGainChange={livekit.onMicGainChange}
+              onOutputVolumeChange={livekit.onOutputVolumeChange}
+              onCreateRoom={rooms.onCreateRoom}
+              onEndRoom={rooms.onEndRoom}
+              onConnect={livekit.onConnect}
+              onDisconnect={livekit.onDisconnect}
             />
           ) : <Navigate to="/login" replace />}
         />
