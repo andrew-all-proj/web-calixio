@@ -1,6 +1,8 @@
 .page {
   display: grid;
   gap: 24px;
+  max-width: 800px;
+  margin: 0 auto;
 }
 
 .join {

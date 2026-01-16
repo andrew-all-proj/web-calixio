@@ -4,11 +4,9 @@ interface AuthState {
   isAuthenticated: boolean
   email: string | null
   accessToken: string | null
-  refreshToken: string | null
   setAuth: (payload: {
-    email: string
+    email: string | null
     accessToken: string
-    refreshToken: string | null
   }) => void
   logout: () => void
 }
@@ -17,19 +15,16 @@ export const useAuthStore = create<AuthState>((set) => ({
   isAuthenticated: false,
   email: null,
   accessToken: null,
-  refreshToken: null,
-  setAuth: ({ email, accessToken, refreshToken }) =>
+  setAuth: ({ email, accessToken }) =>
     set({
       isAuthenticated: true,
       email,
-      accessToken,
-      refreshToken
+      accessToken
     }),
   logout: () =>
     set({
       isAuthenticated: false,
       email: null,
-      accessToken: null,
-      refreshToken: null
+      accessToken: null
     })
 }))

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   createLocalTracks,
   LocalAudioTrack,
@@ -68,9 +68,11 @@ interface UseLocalTracksResult {
   isMicEnabled: boolean
   isCamEnabled: boolean
   isDeviceInitializing: boolean
+  micGain: number
   ensureLocalTracks: (options: { audio?: boolean; video?: boolean }) => Promise<void>
   toggleMic: () => Promise<void>
   toggleCam: () => Promise<void>
+  setMicGain: (value: number) => void
 }
 
 export const useLocalTracks = (): UseLocalTracksResult => {
@@ -83,6 +85,10 @@ export const useLocalTracks = (): UseLocalTracksResult => {
   const [isMicEnabled, setIsMicEnabled] = useState(true)
   const [isCamEnabled, setIsCamEnabled] = useState(true)
   const [isDeviceInitializing, setIsDeviceInitializing] = useState(false)
+  const [micGain, setMicGainState] = useState(80)
+  const audioContextRef = useRef<AudioContext | null>(null)
+  const gainNodeRef = useRef<GainNode | null>(null)
+  const destinationTrackRef = useRef<MediaStreamTrack | null>(null)
 
   const ensureLocalTracks = useCallback(
     async (options: { audio?: boolean; video?: boolean }) => {
@@ -138,8 +144,47 @@ export const useLocalTracks = (): UseLocalTracksResult => {
     return () => {
       localAudioTrack?.stop()
       localVideoTrack?.stop()
+      destinationTrackRef.current?.stop()
+      audioContextRef.current?.close()
+      audioContextRef.current = null
+      gainNodeRef.current = null
     }
   }, [localAudioTrack, localVideoTrack])
+
+  useEffect(() => {
+    if (!gainNodeRef.current) {
+      return
+    }
+    gainNodeRef.current.gain.value = micGain / 100
+  }, [micGain])
+
+  useEffect(() => {
+    const setupGainPipeline = async () => {
+      if (!localAudioTrack || gainNodeRef.current) {
+        return
+      }
+
+      const audioContext = new AudioContext()
+      const source = audioContext.createMediaStreamSource(
+        new MediaStream([localAudioTrack.mediaStreamTrack])
+      )
+      const gainNode = audioContext.createGain()
+      gainNode.gain.value = micGain / 100
+      const destination = audioContext.createMediaStreamDestination()
+      source.connect(gainNode).connect(destination)
+
+      const processedTrack = destination.stream.getAudioTracks()[0]
+      if (processedTrack) {
+        await localAudioTrack.replaceTrack(processedTrack, true)
+        destinationTrackRef.current = processedTrack
+      }
+
+      audioContextRef.current = audioContext
+      gainNodeRef.current = gainNode
+    }
+
+    void setupGainPipeline()
+  }, [localAudioTrack, micGain])
 
   const toggleMic = useCallback(async () => {
     if (!localAudioTrack) {
@@ -161,14 +206,20 @@ export const useLocalTracks = (): UseLocalTracksResult => {
     setIsCamEnabled(next)
   }, [ensureLocalTracks, localVideoTrack])
 
+  const setMicGain = useCallback((value: number) => {
+    setMicGainState(value)
+  }, [])
+
   return {
     localAudioTrack,
     localVideoTrack,
     isMicEnabled,
     isCamEnabled,
     isDeviceInitializing,
+    micGain,
     ensureLocalTracks,
     toggleMic,
-    toggleCam
+    toggleCam,
+    setMicGain
   }
 }

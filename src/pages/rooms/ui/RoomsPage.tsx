@@ -41,6 +41,7 @@ const RoomsPage = () => {
   const [isCreating, setIsCreating] = useState(false)
   const [currentRoomId, setCurrentRoomId] = useState<string | null>(null)
   const [copyState, setCopyState] = useState<'idle' | 'copied' | 'error'>('idle')
+  const [outputVolume, setOutputVolume] = useState(70)
 
   const {
     localAudioTrack,
@@ -48,16 +49,24 @@ const RoomsPage = () => {
     isMicEnabled,
     isCamEnabled,
     isDeviceInitializing,
+    micGain,
     toggleMic,
-    toggleCam
+    toggleCam,
+    setMicGain
   } = useLocalTracks()
 
-  const { room, remoteTracks, connectWithToken, leaveRoom, clearRemoteTracks } =
-    useRoomConnection({
-      livekitUrl: import.meta.env.VITE_LIVEKIT_WS,
-      getParticipantLabel: (participant) =>
-        participant.identity || t('rooms.participant')
-    })
+  const {
+    room,
+    remoteTracks,
+    connectWithToken,
+    leaveRoom,
+    clearRemoteTracks,
+    setOutputVolume: applyOutputVolume
+  } = useRoomConnection({
+    livekitUrl: import.meta.env.VITE_LIVEKIT_WS,
+    getParticipantLabel: (participant) =>
+      participant.identity || t('rooms.participant')
+  })
 
   useEffect(() => {
     const params = new URLSearchParams(location.search)
@@ -73,6 +82,10 @@ const RoomsPage = () => {
       setCopyState('idle')
     }
   }, [currentRoomId])
+
+  useEffect(() => {
+    applyOutputVolume(outputVolume)
+  }, [applyOutputVolume, outputVolume])
 
   useEffect(() => {
     if (!room || (!localAudioTrack && !localVideoTrack)) {
@@ -212,13 +225,6 @@ const RoomsPage = () => {
           onCreate={handleCreate}
         />
       ) : null}
-      {currentRoomId ? (
-        <ShareCard
-          shareLink={shareLink}
-          copyState={copyState}
-          onCopy={handleCopy}
-        />
-      ) : null}
       {joinError ? <p className={styles.error}>{joinError}</p> : null}
       {createError ? <p className={styles.error}>{createError}</p> : null}
       <div className={styles.stage}>
@@ -233,10 +239,21 @@ const RoomsPage = () => {
           isMicEnabled={isMicEnabled}
           isCamEnabled={isCamEnabled}
           isDeviceInitializing={isDeviceInitializing}
+          micGain={micGain}
+          outputVolume={outputVolume}
           onToggleMic={toggleMic}
           onToggleCam={toggleCam}
+          onMicGainChange={setMicGain}
+          onOutputVolumeChange={setOutputVolume}
         />
       </div>
+      {currentRoomId ? (
+        <ShareCard
+          shareLink={shareLink}
+          copyState={copyState}
+          onCopy={handleCopy}
+        />
+      ) : null}
     </section>
   )
 }

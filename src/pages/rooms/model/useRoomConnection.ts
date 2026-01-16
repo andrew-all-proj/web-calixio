@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react'
-import { RemoteParticipant, Room, RoomEvent, Track } from 'livekit-client'
+import { RemoteAudioTrack, RemoteParticipant, Room, RoomEvent, Track } from 'livekit-client'
 
 export interface VideoTrackItem {
   id: string
@@ -18,6 +18,7 @@ interface UseRoomConnectionResult {
   connectWithToken: (token: string) => Promise<void>
   leaveRoom: () => void
   clearRemoteTracks: () => void
+  setOutputVolume: (volume: number) => void
 }
 
 export const useRoomConnection = ({
@@ -27,9 +28,22 @@ export const useRoomConnection = ({
   const [room, setRoom] = useState<Room | null>(null)
   const [remoteTracks, setRemoteTracks] = useState<VideoTrackItem[]>([])
   const audioElements = useRef<Map<string, HTMLMediaElement>>(new Map())
+  const audioTracksRef = useRef<RemoteAudioTrack[]>([])
+  const outputVolumeRef = useRef(0.7)
 
   const clearRemoteTracks = useCallback(() => {
     setRemoteTracks([])
+  }, [])
+
+  const setOutputVolume = useCallback((volume: number) => {
+    const normalized = Math.max(0, Math.min(1, volume / 100))
+    outputVolumeRef.current = normalized
+    audioElements.current.forEach((element) => {
+      element.volume = normalized
+    })
+    audioTracksRef.current.forEach((track) => {
+      track.setVolume(normalized)
+    })
   }, [])
 
   const connectWithToken = useCallback(
@@ -62,26 +76,31 @@ export const useRoomConnection = ({
       }
 
       nextRoom.on(RoomEvent.TrackSubscribed, (track, publication, participant) => {
-        if (track.kind === Track.Kind.Audio) {
-          const element = track.attach()
-          audioElements.current.set(track.sid ?? participant.sid, element)
-          return
-        }
+      if (track.kind === Track.Kind.Audio) {
+        const element = track.attach()
+        element.volume = outputVolumeRef.current
+        audioElements.current.set(track.sid ?? participant.sid, element)
+        audioTracksRef.current.push(track as RemoteAudioTrack)
+        return
+      }
 
         addRemoteTrack(track, participant)
       })
 
       nextRoom.on(RoomEvent.TrackUnsubscribed, (track, publication, participant) => {
-        if (track.kind === Track.Kind.Audio) {
-          const key = track.sid ?? participant.sid
-          const element = audioElements.current.get(key)
-          if (element) {
-            track.detach(element)
-            element.remove()
-            audioElements.current.delete(key)
-          }
-          return
+      if (track.kind === Track.Kind.Audio) {
+        const key = track.sid ?? participant.sid
+        const element = audioElements.current.get(key)
+        if (element) {
+          track.detach(element)
+          element.remove()
+          audioElements.current.delete(key)
         }
+        audioTracksRef.current = audioTracksRef.current.filter(
+          (item) => item !== track
+        )
+        return
+      }
 
         if (track.kind !== Track.Kind.Video) {
           return
@@ -89,14 +108,15 @@ export const useRoomConnection = ({
         setRemoteTracks((prev) => prev.filter((item) => item.track !== track))
       })
 
-      nextRoom.on(RoomEvent.Disconnected, () => {
-        audioElements.current.forEach((element, key) => {
-          element.remove()
-          audioElements.current.delete(key)
-        })
-        setRoom(null)
-        setRemoteTracks([])
+    nextRoom.on(RoomEvent.Disconnected, () => {
+      audioElements.current.forEach((element, key) => {
+        element.remove()
+        audioElements.current.delete(key)
       })
+      audioTracksRef.current = []
+      setRoom(null)
+      setRemoteTracks([])
+    })
 
       await nextRoom.connect(livekitUrl, token)
       setRoom(nextRoom)
@@ -113,6 +133,7 @@ export const useRoomConnection = ({
     remoteTracks,
     connectWithToken,
     leaveRoom,
-    clearRemoteTracks
+    clearRemoteTracks,
+    setOutputVolume
   }
 }

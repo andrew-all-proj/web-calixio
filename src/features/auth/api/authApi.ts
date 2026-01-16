@@ -11,10 +11,8 @@ export interface RegisterPayload extends AuthCredentials {
 
 export interface AuthTokens {
   accessToken?: string
-  refreshToken?: string
   token?: string
   access_token?: string
-  refresh_token?: string
 }
 
 export const authApi = {
@@ -26,10 +24,8 @@ export const authApi = {
     const response = await apiClient.post('/auth/register', payload)
     return response.data
   },
-  refresh: async (refreshToken: string) => {
-    const response = await apiClient.post<AuthTokens>('/auth/refresh', {
-      refreshToken
-    })
+  refresh: async () => {
+    const response = await apiClient.post<AuthTokens>('/auth/refresh')
     return response.data
   }
 }

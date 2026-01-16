@@ -16,8 +16,12 @@ interface RoomWindowProps {
   isMicEnabled: boolean
   isCamEnabled: boolean
   isDeviceInitializing: boolean
+  micGain: number
+  outputVolume: number
   onToggleMic: () => void
   onToggleCam: () => void
+  onMicGainChange: (value: number) => void
+  onOutputVolumeChange: (value: number) => void
 }
 
 export const RoomWindow = ({
@@ -31,8 +35,12 @@ export const RoomWindow = ({
   isMicEnabled,
   isCamEnabled,
   isDeviceInitializing,
+  micGain,
+  outputVolume,
   onToggleMic,
-  onToggleCam
+  onToggleCam,
+  onMicGainChange,
+  onOutputVolumeChange
 }: RoomWindowProps) => {
   const { t } = useTranslation()
   const previewRef = useRef<HTMLVideoElement>(null)
@@ -122,11 +130,27 @@ export const RoomWindow = ({
             <div className={styles.settingsPanel}>
               <label className={styles.slider}>
                 <span>{t('rooms.settingsMic')}</span>
-                <input type="range" min="0" max="100" defaultValue="80" />
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={micGain}
+                  onChange={(event) =>
+                    onMicGainChange(Number(event.target.value))
+                  }
+                />
               </label>
               <label className={styles.slider}>
                 <span>{t('rooms.settingsVolume')}</span>
-                <input type="range" min="0" max="100" defaultValue="70" />
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={outputVolume}
+                  onChange={(event) =>
+                    onOutputVolumeChange(Number(event.target.value))
+                  }
+                />
               </label>
             </div>
           ) : null}

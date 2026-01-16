@@ -47,8 +47,7 @@ export const RegisterForm = () => {
         setSubmitError(t('register.form.submitError'))
         return
       }
-      const refreshToken = tokens.refreshToken ?? tokens.refresh_token ?? null
-      setAuth({ email, accessToken, refreshToken })
+      setAuth({ email, accessToken })
       setPassword('')
       setName('')
       navigate(routePaths.rooms)
