@@ -155,6 +155,34 @@
   z-index: 2;
 }
 
+.settingsWrap {
+  position: relative;
+}
+
+.settingsPanel {
+  position: absolute;
+  bottom: 56px;
+  right: 0;
+  background: rgba(15, 19, 30, 0.95);
+  border-radius: 16px;
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+  min-width: 200px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+}
+
+.slider {
+  display: grid;
+  gap: 6px;
+  color: #ffffff;
+  font-size: 12px;
+}
+
+.slider input {
+  width: 100%;
+}
+
 .iconGroup {
   display: flex;
   gap: 10px;

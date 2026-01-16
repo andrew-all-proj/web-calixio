@@ -80,6 +80,8 @@
     "mic": "Мик",
     "cam": "Кам",
     "settings": "Настр",
+    "settingsMic": "Громкость микрофона",
+    "settingsVolume": "Громкость вывода",
     "you": "Вы",
     "participant": "Участник"
   }

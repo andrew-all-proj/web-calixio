@@ -80,6 +80,8 @@
     "mic": "Mic",
     "cam": "Cam",
     "settings": "Settings",
+    "settingsMic": "Microphone gain",
+    "settingsVolume": "Output volume",
     "you": "You",
     "participant": "Participant"
   }
