@@ -12,6 +12,11 @@ const hasCerts = fs.existsSync(keyPath) && fs.existsSync(certPath)
 
 export default defineConfig({
   plugins: [react()],
+  resolve: {
+    alias: {
+      '@': path.resolve(rootDir, 'src')
+    }
+  },
   server: {
     host: '0.0.0.0',
     port: 5173,

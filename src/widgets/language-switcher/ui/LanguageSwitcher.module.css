@@ -1,0 +1,24 @@
+.switcher {
+  display: inline-flex;
+  gap: 6px;
+  background: #f2f4f8;
+  padding: 4px;
+  border-radius: 999px;
+}
+
+.button,
+.active {
+  border: none;
+  background: transparent;
+  padding: 5px 8px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  color: #1f2430;
+}
+
+.active {
+  background: #1f2430;
+  color: #ffffff;
+}

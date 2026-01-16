@@ -1,0 +1,55 @@
+.page {
+  display: grid;
+  gap: 24px;
+}
+
+.join {
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 28px;
+  box-shadow: 0 20px 40px rgba(31, 36, 48, 0.08);
+  display: grid;
+  gap: 12px;
+}
+
+.join h1 {
+  margin: 0;
+  font-size: 32px;
+}
+
+.join p {
+  margin: 0;
+  color: #4b5565;
+}
+
+.link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: #1f2430;
+  color: #ffffff;
+  font-weight: 600;
+  width: fit-content;
+  border: none;
+  cursor: pointer;
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+}
+
+.label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #4b5565;
+}
+
+.field input {
+  border: 1px solid #d3d8e2;
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 14px;
+}

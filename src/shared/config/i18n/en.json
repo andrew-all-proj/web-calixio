@@ -1,0 +1,86 @@
+{
+  "app": {
+    "kicker": "Productive workspace",
+    "title": "Calixio Control"
+  },
+  "nav": {
+    "login": "Login",
+    "logout": "Logout"
+  },
+  "home": {
+    "join": {
+      "title": "Join a room",
+      "subtitle": "Enter a room number or invite link to continue.",
+      "label": "Room",
+      "placeholder": "Room number or link",
+      "cta": "Join room"
+    }
+  },
+  "auth": {
+    "title": "Login",
+    "register": "Register",
+    "email": "Email",
+    "password": "Password",
+    "login": "Continue",
+    "loading": "Signing in...",
+    "error": "Unable to sign in. Check your credentials."
+  },
+  "register": {
+    "title": "Create account",
+    "subtitle": "Fill in the form to create a new account.",
+    "form": {
+      "title": "Register",
+      "name": "Name",
+      "namePlaceholder": "Your name",
+      "email": "Email",
+      "password": "Password",
+      "submit": "Create account",
+      "login": "Login",
+      "loading": "Creating account...",
+      "nameError": "Enter your name.",
+      "emailError": "Enter a valid email address.",
+      "passwordError": "Password must be at least 6 characters.",
+      "submitError": "Unable to create account."
+    }
+  },
+  "rooms": {
+    "title": "Rooms",
+    "subtitle": "Join an existing room or create a new one.",
+    "create": {
+      "placeholder": "Room name",
+      "cta": "Create room",
+      "loading": "Creating...",
+      "nameError": "Room name is required.",
+      "idError": "Room id was not returned.",
+      "authError": "Sign in to create a room.",
+      "envError": "LiveKit URL is not configured.",
+      "tokenError": "Room token was not returned.",
+      "requestError": "Unable to create the room."
+    },
+    "join": {
+      "placeholder": "Room ID",
+      "cta": "Join room",
+      "loading": "Joining...",
+      "error": "Enter a room ID.",
+      "envError": "LiveKit URL is not configured.",
+      "tokenError": "Room token was not returned.",
+      "requestError": "Unable to join the room.",
+      "connectError": "Unable to connect to LiveKit."
+    },
+    "share": {
+      "label": "Invite link",
+      "copy": "Copy link",
+      "copied": "Copied",
+      "error": "Copy failed"
+    },
+    "leave": "Leave room",
+    "nameLabel": "Your name in meeting",
+    "guest": "Guest",
+    "connect": "Join",
+    "mic": "Mic",
+    "cam": "Cam",
+    "settings": "Settings",
+    "you": "You",
+    "participant": "Participant"
+  }
+}
