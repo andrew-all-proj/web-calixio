@@ -16,11 +16,10 @@ export const roomApi = {
     )
     return response.data
   },
-  joinRoom: async (id: string, payload: RoomPayload = {}, token?: string) => {
+  joinRoom: async (id: string, payload: RoomPayload = {}) => {
     const response = await apiClient.post<CreateRoomResponse>(
       `/rooms/${id}/join`,
-      payload,
-      token ? withAuth(token) : undefined
+      payload
     )
     return response.data
   },

@@ -153,7 +153,9 @@ const RoomsPage = () => {
     localVideoTrack.attach(localVideoRef.current)
 
     return () => {
-      localVideoTrack.detach(localVideoRef.current)
+      if (localVideoRef.current) {
+        localVideoTrack.detach(localVideoRef.current)
+      }
     }
   }, [localVideoTrack])
 
@@ -222,7 +224,6 @@ const RoomsPage = () => {
 
       const publications =
         room.localParticipant.trackPublications ??
-        room.localParticipant.tracks ??
         new Map()
 
       const hasTrack = Array.from(publications.values()).some(
@@ -251,7 +252,7 @@ const RoomsPage = () => {
   }, [localAudioTrack, localVideoTrack])
 
   const setupRoom = async (token: string) => {
-    const nextRoom = new Room({ autoSubscribe: true })
+    const nextRoom = new Room()
 
     const addRemoteTrack = (track: Track, participant: { identity?: string; sid: string }) => {
       if (track.kind !== Track.Kind.Video) {
@@ -302,14 +303,6 @@ const RoomsPage = () => {
       setRemoteTracks((prev) => prev.filter((item) => item.track !== track))
     })
 
-    nextRoom.on(RoomEvent.ParticipantConnected, (participant) => {
-      participant.videoTrackPublications.forEach((publication) => {
-        if (publication.track) {
-          addRemoteTrack(publication.track, participant)
-        }
-      })
-    })
-
     nextRoom.on(RoomEvent.Disconnected, () => {
       audioElements.current.forEach((element, key) => {
         element.remove()
@@ -319,16 +312,12 @@ const RoomsPage = () => {
       setRemoteTracks([])
     })
 
+    if (!livekitUrl) {
+      throw new Error('livekit_url_missing')
+    }
+
     await nextRoom.connect(livekitUrl, token)
     setRoom(nextRoom)
-
-    nextRoom.participants.forEach((participant) => {
-      participant.videoTrackPublications.forEach((publication) => {
-        if (publication.track) {
-          addRemoteTrack(publication.track, participant)
-        }
-      })
-    })
   }
 
   const joinRoom = async () => {
@@ -348,9 +337,9 @@ const RoomsPage = () => {
     setIsJoining(true)
 
     try {
-      const response = await roomApi.joinRoom(roomId, {}, accessToken ?? undefined)
+      const response = await roomApi.joinRoom(roomId)
       const token = response.token
-      const resolvedRoomId = response.room_id ?? response.id ?? response.roomId ?? roomId
+      const resolvedRoomId = response.room_id ?? response.id ?? response.roomId
 
       if (!token) {
         setJoinError(t('rooms.join.tokenError'))
@@ -359,9 +348,9 @@ const RoomsPage = () => {
 
       try {
         await setupRoom(token)
-        setCurrentRoomId(resolvedRoomId)
-        setJoinValue(resolvedRoomId)
-      } catch {
+        setCurrentRoomId(resolvedRoomId ?? null)
+        setJoinValue(resolvedRoomId ?? '')
+      } catch (e) {
         setJoinError(t('rooms.join.connectError'))
       }
     } catch {
@@ -397,7 +386,7 @@ const RoomsPage = () => {
         accessToken,
         { name: createName.trim() }
       )
-      const roomId = response.id ?? response.roomId ?? response.room_id
+      const roomId = response.id
       if (!roomId) {
         setCreateError(t('rooms.create.idError'))
         return
@@ -548,14 +537,16 @@ const RoomsPage = () => {
                 {t('rooms.cam')}
               </button>
             </div>
-            <button
-              type="button"
-              className={styles.primary}
-              onClick={joinRoom}
-              disabled={isJoining || Boolean(room) || !currentRoomId && !joinValue.trim()}
-            >
-              {isJoining ? t('rooms.join.loading') : t('rooms.connect')}
-            </button>
+            {!room ? (
+              <button
+                type="button"
+                className={styles.primary}
+                onClick={joinRoom}
+                disabled={isJoining || !currentRoomId && !joinValue.trim()}
+              >
+                {isJoining ? t('rooms.join.loading') : t('rooms.connect')}
+              </button>
+            ) : null}
             <button type="button" className={styles.iconButton}>
               {t('rooms.settings')}
             </button>
@@ -583,7 +574,9 @@ const VideoTile = ({ label, track, muted = false }: VideoTileProps) => {
     track.attach(ref.current)
 
     return () => {
-      track.detach(ref.current)
+      if (ref.current) {
+        track.detach(ref.current)
+      }
     }
   }, [track])
 
