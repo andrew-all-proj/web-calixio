@@ -128,8 +128,7 @@
   height: 100%;
 }
 
-.roomWindow:fullscreen .preview video,
-.roomWindow:fullscreen .tile video {
+.roomWindow:fullscreen .preview video {
   object-fit: cover;
 }
 
@@ -408,4 +407,5 @@
   .preview video,
   .tile video {
     object-fit: contain;
+    background: #050506;
   }
