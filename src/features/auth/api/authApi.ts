@@ -13,6 +13,7 @@ export interface AuthTokens {
   accessToken?: string
   token?: string
   access_token?: string
+  name?: string
 }
 
 export const authApi = {

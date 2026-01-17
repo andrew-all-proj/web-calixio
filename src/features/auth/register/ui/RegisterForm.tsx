@@ -47,7 +47,7 @@ export const RegisterForm = () => {
         setSubmitError(t('register.form.submitError'))
         return
       }
-      setAuth({ email, accessToken })
+      setAuth({ email, accessToken, name: tokens.name ?? name })
       setPassword('')
       setName('')
       navigate(routePaths.rooms)

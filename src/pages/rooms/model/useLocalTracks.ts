@@ -83,7 +83,7 @@ export const useLocalTracks = (): UseLocalTracksResult => {
     null
   )
   const [isMicEnabled, setIsMicEnabled] = useState(true)
-  const [isCamEnabled, setIsCamEnabled] = useState(true)
+  const [isCamEnabled, setIsCamEnabled] = useState(false)
   const [isDeviceInitializing, setIsDeviceInitializing] = useState(false)
   const [micGain, setMicGainState] = useState(80)
   const audioContextRef = useRef<AudioContext | null>(null)
@@ -137,7 +137,7 @@ export const useLocalTracks = (): UseLocalTracksResult => {
   )
 
   useEffect(() => {
-    void ensureLocalTracks({ audio: true, video: true })
+    void ensureLocalTracks({ audio: true, video: false })
   }, [ensureLocalTracks])
 
   useEffect(() => {

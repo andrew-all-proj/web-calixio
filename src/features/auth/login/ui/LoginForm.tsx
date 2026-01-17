@@ -27,7 +27,7 @@ export const LoginForm = () => {
         setSubmitError(t('auth.error'))
         return
       }
-      setAuth({ email, accessToken })
+      setAuth({ email, accessToken, name: tokens.name ?? null })
       setPassword('')
       navigate(routePaths.rooms)
     } catch {

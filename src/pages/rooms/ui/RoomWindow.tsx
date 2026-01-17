@@ -18,6 +18,8 @@ interface RoomWindowProps {
   isDeviceInitializing: boolean
   micGain: number
   outputVolume: number
+  displayName: string
+  onDisplayNameChange: (value: string) => void
   onToggleMic: () => void
   onToggleCam: () => void
   onMicGainChange: (value: number) => void
@@ -37,6 +39,8 @@ export const RoomWindow = ({
   isDeviceInitializing,
   micGain,
   outputVolume,
+  displayName,
+  onDisplayNameChange,
   onToggleMic,
   onToggleCam,
   onMicGainChange,
@@ -69,7 +73,7 @@ export const RoomWindow = ({
       ) : null}
       {isConnected ? (
         <div className={styles.gridView}>
-          <VideoTile label={t('rooms.you')} track={localVideoTrack} muted />
+          <VideoTile label={displayName || t('rooms.you')} track={localVideoTrack} muted />
           {remoteTracks.map((item) => (
             <VideoTile key={item.id} label={item.label} track={item.track} />
           ))}
@@ -79,7 +83,13 @@ export const RoomWindow = ({
           <video ref={previewRef} autoPlay playsInline muted />
           <div className={styles.centerText}>
             <span>{t('rooms.nameLabel')}</span>
-            <strong>{t('rooms.guest')}</strong>
+            <input
+              type="text"
+              className={styles.nameInput}
+              value={displayName}
+              onChange={(event) => onDisplayNameChange(event.target.value)}
+              placeholder={t('rooms.guest')}
+            />
           </div>
         </div>
       )}

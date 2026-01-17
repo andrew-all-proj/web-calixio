@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react'
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useLocation } from 'react-router-dom'
 import { LocalAudioTrack, LocalVideoTrack } from 'livekit-client'
@@ -33,6 +33,7 @@ const RoomsPage = () => {
   const location = useLocation()
   const accessToken = useAuthStore((state) => state.accessToken)
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
+  const authName = useAuthStore((state) => state.name)
   const [joinValue, setJoinValue] = useState('')
   const [createName, setCreateName] = useState('')
   const [joinError, setJoinError] = useState('')
@@ -42,6 +43,8 @@ const RoomsPage = () => {
   const [currentRoomId, setCurrentRoomId] = useState<string | null>(null)
   const [copyState, setCopyState] = useState<'idle' | 'copied' | 'error'>('idle')
   const [outputVolume, setOutputVolume] = useState(70)
+  const [displayName, setDisplayName] = useState('')
+  const hasManualName = useRef(false)
 
   const {
     localAudioTrack,
@@ -84,6 +87,30 @@ const RoomsPage = () => {
   }, [currentRoomId])
 
   useEffect(() => {
+    if (hasManualName.current) {
+      return
+    }
+
+    if (authName) {
+      setDisplayName(authName)
+    } else if (!displayName) {
+      const stored = localStorage.getItem('calixio.displayName')
+      if (stored) {
+        setDisplayName(stored)
+      } else {
+        setDisplayName(t('rooms.guest'))
+      }
+    }
+  }, [authName, displayName, t])
+
+  useEffect(() => {
+    if (!displayName.trim()) {
+      return
+    }
+    localStorage.setItem('calixio.displayName', displayName.trim())
+  }, [displayName])
+
+  useEffect(() => {
     applyOutputVolume(outputVolume)
   }, [applyOutputVolume, outputVolume])
 
@@ -124,9 +151,13 @@ const RoomsPage = () => {
     setIsJoining(true)
 
     try {
-      const response = await roomApi.joinRoom(roomId)
+      const payload = displayName.trim()
+        ? { user_name: displayName.trim() }
+        : {}
+      const response = await roomApi.joinRoom(roomId, payload)
       const token = response.token
       const resolvedRoomId = response.room_id ?? response.id ?? response.roomId
+      const resolvedName = response.room_name
 
       if (!token) {
         setJoinError(t('rooms.join.tokenError'))
@@ -137,6 +168,9 @@ const RoomsPage = () => {
         await connectWithToken(token)
         setCurrentRoomId(resolvedRoomId ?? null)
         setJoinValue(resolvedRoomId ?? '')
+        if (resolvedName) {
+          setDisplayName(resolvedName)
+        }
       } catch {
         setJoinError(t('rooms.join.connectError'))
       }
@@ -212,6 +246,11 @@ const RoomsPage = () => {
   const joinDisabled =
     isJoining || (!currentRoomId && !joinValue.trim()) || Boolean(room)
 
+  const handleDisplayNameChange = (value: string) => {
+    hasManualName.current = true
+    setDisplayName(value)
+  }
+
   return (
     <section className={styles.page}>
       {!room ? (
@@ -241,6 +280,8 @@ const RoomsPage = () => {
           isDeviceInitializing={isDeviceInitializing}
           micGain={micGain}
           outputVolume={outputVolume}
+          displayName={displayName}
+          onDisplayNameChange={handleDisplayNameChange}
           onToggleMic={toggleMic}
           onToggleCam={toggleCam}
           onMicGainChange={setMicGain}
