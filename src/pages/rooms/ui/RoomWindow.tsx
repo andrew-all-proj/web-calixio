@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { LocalVideoTrack } from 'livekit-client'
 import { VideoTrackItem } from '../model'
+import { VideoGrid, VideoGridItem } from './VideoGrid'
 import { VideoTile } from './VideoTile'
 import styles from './RoomsPage.module.css'
 
@@ -115,15 +116,31 @@ export const RoomWindow = ({
         </div>
       ) : null}
       {isConnected ? (
-        <div className={styles.gridView}>
-          <VideoTile
-            label={displayName || t('rooms.you')}
-            track={localVideoTrack}
-            muted
-            className={isMini ? styles.localMini : undefined}
-            videoRef={localTileRef}
-          >
-            {isMini ? (
+        <>
+          <VideoGrid
+            items={[
+              ...(isMini
+                ? []
+                : [
+                    {
+                      id: 'local',
+                      label: displayName || t('rooms.you'),
+                      track: localVideoTrack,
+                      muted: true,
+                      videoRef: localTileRef
+                    } as VideoGridItem
+                  ]),
+              ...remoteTracks
+            ]}
+          />
+          {isMini ? (
+            <VideoTile
+              label={displayName || t('rooms.you')}
+              track={localVideoTrack}
+              muted
+              className={styles.localMini}
+              videoRef={localTileRef}
+            >
               <button
                 type="button"
                 className={styles.miniRestore}
@@ -131,12 +148,9 @@ export const RoomWindow = ({
               >
                 {t('rooms.restore')}
               </button>
-            ) : null}
-          </VideoTile>
-          {remoteTracks.map((item) => (
-            <VideoTile key={item.id} label={item.label} track={item.track} />
-          ))}
-        </div>
+            </VideoTile>
+          ) : null}
+        </>
       ) : (
         <div className={styles.preview}>
           <video ref={previewRef} autoPlay playsInline muted />

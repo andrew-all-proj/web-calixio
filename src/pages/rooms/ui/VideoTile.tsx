@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import type { ReactNode, RefObject } from 'react'
 import { Track } from 'livekit-client'
 import styles from './RoomsPage.module.css'
 
@@ -7,8 +8,8 @@ interface VideoTileProps {
   track: Track | null
   muted?: boolean
   className?: string
-  children?: React.ReactNode
-  videoRef?: React.RefObject<HTMLVideoElement>
+  children?: ReactNode
+  videoRef?: RefObject<HTMLVideoElement>
 }
 
 export const VideoTile = ({
