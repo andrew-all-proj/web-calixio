@@ -9,6 +9,7 @@ export interface CreateRoomResponse {
   roomId?: string
   room_id?: string
   room_name?: string
+  user_name?: string
   name?: string
   status?: string
   created_at?: string

@@ -157,7 +157,7 @@ const RoomsPage = () => {
       const response = await roomApi.joinRoom(roomId, payload)
       const token = response.token
       const resolvedRoomId = response.room_id ?? response.id ?? response.roomId
-      const resolvedName = response.room_name
+      const resolvedName = response.user_name
 
       if (!token) {
         setJoinError(t('rooms.join.tokenError'))

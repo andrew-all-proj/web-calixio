@@ -80,6 +80,8 @@
     "mic": "Mic",
     "cam": "Cam",
     "settings": "Settings",
+    "pip": "Mini",
+    "restore": "Back",
     "settingsMic": "Microphone gain",
     "settingsVolume": "Output volume",
     "you": "You",

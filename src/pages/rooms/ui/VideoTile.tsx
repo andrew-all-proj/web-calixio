@@ -6,9 +6,17 @@ interface VideoTileProps {
   label: string
   track: Track | null
   muted?: boolean
+  className?: string
+  children?: React.ReactNode
 }
 
-export const VideoTile = ({ label, track, muted = false }: VideoTileProps) => {
+export const VideoTile = ({
+  label,
+  track,
+  muted = false,
+  className,
+  children
+}: VideoTileProps) => {
   const ref = useRef<HTMLVideoElement>(null)
 
   useEffect(() => {
@@ -26,7 +34,8 @@ export const VideoTile = ({ label, track, muted = false }: VideoTileProps) => {
   }, [track])
 
   return (
-    <div className={styles.tile}>
+    <div className={`${styles.tile}${className ? ` ${className}` : ''}`}>
+      {children}
       <video ref={ref} autoPlay playsInline muted={muted} />
       <span>{label}</span>
     </div>

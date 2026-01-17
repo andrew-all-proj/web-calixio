@@ -49,6 +49,7 @@ export const RoomWindow = ({
   const { t } = useTranslation()
   const previewRef = useRef<HTMLVideoElement>(null)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+  const [isMini, setIsMini] = useState(false)
 
   useEffect(() => {
     if (!localVideoTrack || !previewRef.current || isConnected) {
@@ -73,7 +74,22 @@ export const RoomWindow = ({
       ) : null}
       {isConnected ? (
         <div className={styles.gridView}>
-          <VideoTile label={displayName || t('rooms.you')} track={localVideoTrack} muted />
+          <VideoTile
+            label={displayName || t('rooms.you')}
+            track={localVideoTrack}
+            muted
+            className={isMini ? styles.localMini : undefined}
+          >
+            {isMini ? (
+              <button
+                type="button"
+                className={styles.miniRestore}
+                onClick={() => setIsMini(false)}
+              >
+                {t('rooms.restore')}
+              </button>
+            ) : null}
+          </VideoTile>
           {remoteTracks.map((item) => (
             <VideoTile key={item.id} label={item.label} track={item.track} />
           ))}
@@ -116,6 +132,13 @@ export const RoomWindow = ({
             disabled={isDeviceInitializing}
           >
             {t('rooms.cam')}
+          </button>
+          <button
+            type="button"
+            className={styles.iconButton}
+            onClick={() => setIsMini((prev) => !prev)}
+          >
+            {t('rooms.pip')}
           </button>
         </div>
         {!isConnected ? (
