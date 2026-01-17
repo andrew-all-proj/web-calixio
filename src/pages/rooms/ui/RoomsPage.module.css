@@ -108,7 +108,7 @@
   border-radius: 16px;
   overflow: hidden;
   display: grid;
-  place-items: center;
+  grid-template-rows: 1fr auto;
   aspect-ratio: 16 / 9;
 }
 
@@ -135,15 +135,13 @@
 }
 
 .tile span {
-  position: absolute;
-  left: 50%;
-  bottom: 12px;
+  justify-self: center;
+  margin: 8px 0 12px;
   background: rgba(15, 19, 30, 0.7);
   color: #ffffff;
   padding: 6px 10px;
   border-radius: 999px;
   font-size: 12px;
-  transform: translateX(-50%);
 }
 
 .localMini {
