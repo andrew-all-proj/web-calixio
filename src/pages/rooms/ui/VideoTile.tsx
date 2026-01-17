@@ -8,6 +8,7 @@ interface VideoTileProps {
   muted?: boolean
   className?: string
   children?: React.ReactNode
+  videoRef?: React.RefObject<HTMLVideoElement>
 }
 
 export const VideoTile = ({
@@ -15,9 +16,11 @@ export const VideoTile = ({
   track,
   muted = false,
   className,
-  children
+  children,
+  videoRef
 }: VideoTileProps) => {
-  const ref = useRef<HTMLVideoElement>(null)
+  const internalRef = useRef<HTMLVideoElement>(null)
+  const ref = videoRef ?? internalRef
 
   useEffect(() => {
     if (!track || !ref.current) {

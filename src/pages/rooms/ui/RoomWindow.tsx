@@ -48,6 +48,7 @@ export const RoomWindow = ({
 }: RoomWindowProps) => {
   const { t } = useTranslation()
   const previewRef = useRef<HTMLVideoElement>(null)
+  const localTileRef = useRef<HTMLVideoElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [isMini, setIsMini] = useState(false)
@@ -79,16 +80,22 @@ export const RoomWindow = ({
   }, [])
 
   const toggleFullscreen = async () => {
-    if (!containerRef.current) {
-      return
-    }
-
+    const container = containerRef.current
     if (document.fullscreenElement) {
       await document.exitFullscreen()
       return
     }
 
-    await containerRef.current.requestFullscreen()
+    if (container?.requestFullscreen) {
+      await container.requestFullscreen()
+      return
+    }
+
+    const video = localTileRef.current ?? previewRef.current
+    const iosVideo = video as (HTMLVideoElement & {
+      webkitEnterFullscreen?: () => void
+    }) | null
+    iosVideo?.webkitEnterFullscreen?.()
   }
 
   return (
@@ -114,6 +121,7 @@ export const RoomWindow = ({
             track={localVideoTrack}
             muted
             className={isMini ? styles.localMini : undefined}
+            videoRef={localTileRef}
           >
             {isMini ? (
               <button
