@@ -82,6 +82,8 @@
     "settings": "Настр",
     "pip": "Окно",
     "restore": "Назад",
+    "fullscreen": "Полноэкран",
+    "exitFullscreen": "Обычный",
     "settingsMic": "Громкость микрофона",
     "settingsVolume": "Громкость вывода",
     "you": "Вы",

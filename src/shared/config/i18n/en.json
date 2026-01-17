@@ -82,6 +82,8 @@
     "settings": "Settings",
     "pip": "Mini",
     "restore": "Back",
+    "fullscreen": "Full",
+    "exitFullscreen": "Exit",
     "settingsMic": "Microphone gain",
     "settingsVolume": "Output volume",
     "you": "You",

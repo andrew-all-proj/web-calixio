@@ -48,8 +48,10 @@ export const RoomWindow = ({
 }: RoomWindowProps) => {
   const { t } = useTranslation()
   const previewRef = useRef<HTMLVideoElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [isMini, setIsMini] = useState(false)
+  const [isFullscreen, setIsFullscreen] = useState(false)
 
   useEffect(() => {
     if (!localVideoTrack || !previewRef.current || isConnected) {
@@ -65,12 +67,45 @@ export const RoomWindow = ({
     }
   }, [isConnected, localVideoTrack])
 
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(Boolean(document.fullscreenElement))
+    }
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange)
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange)
+    }
+  }, [])
+
+  const toggleFullscreen = async () => {
+    if (!containerRef.current) {
+      return
+    }
+
+    if (document.fullscreenElement) {
+      await document.exitFullscreen()
+      return
+    }
+
+    await containerRef.current.requestFullscreen()
+  }
+
   return (
-    <div className={styles.roomWindow}>
+    <div className={styles.roomWindow} ref={containerRef}>
       {isConnected ? (
-        <button type="button" className={styles.close} onClick={onLeave}>
-          x
-        </button>
+        <div className={styles.windowActions}>
+          <button
+            type="button"
+            className={styles.fullscreen}
+            onClick={toggleFullscreen}
+          >
+            {isFullscreen ? t('rooms.exitFullscreen') : t('rooms.fullscreen')}
+          </button>
+          <button type="button" className={styles.close} onClick={onLeave}>
+            x
+          </button>
+        </div>
       ) : null}
       {isConnected ? (
         <div className={styles.gridView}>
