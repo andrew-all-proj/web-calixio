@@ -16,21 +16,41 @@ export interface VideoGridItem extends VideoTrackItem {
   videoRef?: RefObject<HTMLVideoElement>
 }
 
-const getGrid = (count: number, width: number) => {
+const GRID_GAP = 12
+const TILE_RATIO = 16 / 9
+
+const getGrid = (count: number, width: number, maxHeight: number) => {
   if (!count || !width) {
     return { columns: 1, rows: 1 }
   }
 
-  const ideal = Math.max(220, Math.min(360, width))
-  const columns = Math.max(1, Math.min(count, Math.floor(width / ideal)))
-  const rows = Math.ceil(count / columns)
+  const safeMaxHeight = Math.max(1, maxHeight)
+  let best = { columns: 1, rows: count, score: 0 }
 
-  return { columns, rows }
+  for (let columns = 1; columns <= count; columns += 1) {
+    const rows = Math.ceil(count / columns)
+    const totalGapX = GRID_GAP * Math.max(0, columns - 1)
+    const totalGapY = GRID_GAP * Math.max(0, rows - 1)
+    const tileWidth = Math.max(1, (width - totalGapX) / columns)
+    const tileHeight = tileWidth / TILE_RATIO
+    const gridHeight = tileHeight * rows + totalGapY
+    const fits = gridHeight <= safeMaxHeight
+    const area = tileWidth * tileHeight
+    const score = (fits ? 1 : 0) * 1e12 + area
+
+    if (score > best.score) {
+      best = { columns, rows, score }
+    }
+  }
+
+  return best
 }
 
 export const VideoGrid = ({ items, className }: VideoGridProps) => {
   const ref = useRef<HTMLDivElement>(null)
   const [width, setWidth] = useState(0)
+  const [height, setHeight] = useState(0)
+  const [viewportHeight, setViewportHeight] = useState(() => window.innerHeight)
 
   useEffect(() => {
     if (!ref.current) {
@@ -41,6 +61,7 @@ export const VideoGrid = ({ items, className }: VideoGridProps) => {
       const entry = entries[0]
       if (entry) {
         setWidth(entry.contentRect.width)
+        setHeight(entry.contentRect.height)
       }
     })
 
@@ -51,10 +72,21 @@ export const VideoGrid = ({ items, className }: VideoGridProps) => {
     }
   }, [])
 
-  const { columns } = useMemo(
-    () => getGrid(items.length, width),
-    [items.length, width]
-  )
+  const { columns } = useMemo(() => {
+    const maxHeight = Math.max(height, viewportHeight * 0.6)
+    return getGrid(items.length, width, maxHeight)
+  }, [items.length, width, height, viewportHeight])
+
+  useEffect(() => {
+    const handleResize = () => {
+      setViewportHeight(window.innerHeight)
+    }
+
+    window.addEventListener('resize', handleResize)
+    return () => {
+      window.removeEventListener('resize', handleResize)
+    }
+  }, [])
 
   return (
     <div
