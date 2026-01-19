@@ -1,5 +1,6 @@
 .form {
   display: grid;
+  max-height: 400px;
   gap: 12px;
   padding: 20px;
   border-radius: 16px;
@@ -35,6 +36,7 @@
 }
 
 .field input {
+  max-height: fit-content;
   border: 1px solid #d3d8e2;
   border-radius: 12px;
   padding: 10px 12px;
@@ -43,6 +45,7 @@
 
 .submit {
   border: none;
+  max-height: fit-content;
   border-radius: 12px;
   padding: 10px 14px;
   font-weight: 600;
