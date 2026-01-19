@@ -1,16 +1,15 @@
-import { useEffect, useRef } from 'react'
-import type { ReactNode, RefObject } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import type { PropsWithChildren, RefObject } from 'react'
 import { Track } from 'livekit-client'
 import styles from './RoomsPage.module.css'
 
-interface VideoTileProps {
+type VideoTileProps = PropsWithChildren<{
   label: string
   track: Track | null
   muted?: boolean
   className?: string
-  children?: ReactNode
   videoRef?: RefObject<HTMLVideoElement>
-}
+}>
 
 export const VideoTile = ({
   label,
@@ -22,6 +21,10 @@ export const VideoTile = ({
 }: VideoTileProps) => {
   const internalRef = useRef<HTMLVideoElement>(null)
   const ref = videoRef ?? internalRef
+  const [format, setFormat] = useState<'landscape' | 'portrait' | 'mixed'>(
+    'mixed'
+  )
+  const [tileRatio, setTileRatio] = useState<number | null>(null)
 
   useEffect(() => {
     if (!track || !ref.current) {
@@ -29,16 +32,51 @@ export const VideoTile = ({
     }
 
     track.attach(ref.current)
+    const video = ref.current
+
+    const logMeta = () => {
+      const { videoWidth, videoHeight } = video
+      if (videoWidth && videoHeight) {
+        const rawRatio = videoWidth / videoHeight
+        const ratio = rawRatio.toFixed(3)
+        if (rawRatio > 1.3) {
+          setFormat('landscape')
+        } else if (rawRatio < 0.8) {
+          setFormat('portrait')
+        } else {
+          setFormat('mixed')
+        }
+        setTileRatio(rawRatio)
+        console.info(
+          `[VideoTile] ${label} ${videoWidth}x${videoHeight} ratio=${ratio}`
+        )
+      }
+    }
+
+    video.addEventListener('loadedmetadata', logMeta)
+    video.addEventListener('resize', logMeta)
+    logMeta()
 
     return () => {
+      video.removeEventListener('loadedmetadata', logMeta)
+      video.removeEventListener('resize', logMeta)
       if (ref.current) {
         track.detach(ref.current)
       }
     }
-  }, [track])
+  }, [label, track])
 
   return (
-    <div className={`${styles.tile}${className ? ` ${className}` : ''}`}>
+    <div
+      className={`${styles.tile} ${styles[`tile${format[0].toUpperCase()}${format.slice(1)}`]}${
+        className ? ` ${className}` : ''
+      }`}
+      style={
+        format === 'landscape' && tileRatio
+          ? { aspectRatio: `${tileRatio}` }
+          : undefined
+      }
+    >
       {children}
       <video ref={ref} autoPlay playsInline muted={muted} />
       <span>{label}</span>
