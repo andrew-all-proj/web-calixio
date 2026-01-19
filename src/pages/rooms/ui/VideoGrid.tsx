@@ -72,7 +72,7 @@ export const VideoGrid = ({ items, className }: VideoGridProps) => {
     }
   }, [])
 
-  const { columns } = useMemo(() => {
+  const { columns, rows } = useMemo(() => {
     const maxHeight = Math.max(height, viewportHeight * 0.6)
     return getGrid(items.length, width, maxHeight)
   }, [items.length, width, height, viewportHeight])
@@ -92,7 +92,10 @@ export const VideoGrid = ({ items, className }: VideoGridProps) => {
     <div
       ref={ref}
       className={`${styles.videoGrid}${className ? ` ${className}` : ''}`}
-      style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
+      style={{
+        gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+        gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))`
+      }}
     >
       {items.map((item) => (
         <VideoTile
