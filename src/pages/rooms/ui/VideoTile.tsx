@@ -25,6 +25,8 @@ export const VideoTile = ({
     'mixed'
   )
   const [tileRatio, setTileRatio] = useState<number | null>(null)
+  const MIN_TILE_RATIO = 0.7
+  const MAX_TILE_RATIO = 2.0
 
   useEffect(() => {
     if (!track || !ref.current) {
@@ -46,7 +48,11 @@ export const VideoTile = ({
         } else {
           setFormat('mixed')
         }
-        setTileRatio(rawRatio)
+        const clampedRatio = Math.min(
+          MAX_TILE_RATIO,
+          Math.max(MIN_TILE_RATIO, rawRatio)
+        )
+        setTileRatio(clampedRatio)
         console.info(
           `[VideoTile] ${label} ${videoWidth}x${videoHeight} ratio=${ratio}`
         )
@@ -71,11 +77,7 @@ export const VideoTile = ({
       className={`${styles.tile} ${styles[`tile${format[0].toUpperCase()}${format.slice(1)}`]}${
         className ? ` ${className}` : ''
       }`}
-      style={
-        format === 'landscape' && tileRatio
-          ? { aspectRatio: `${tileRatio}` }
-          : undefined
-      }
+      style={tileRatio ? { aspectRatio: `${tileRatio}` } : undefined}
     >
       {children}
       <video ref={ref} autoPlay playsInline muted={muted} />
