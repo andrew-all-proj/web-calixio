@@ -5,6 +5,7 @@ interface AuthState {
   email: string | null
   name: string | null
   accessToken: string | null
+  setAccessToken: (accessToken: string) => void
   setAuth: (payload: {
     email: string | null
     accessToken: string
@@ -18,6 +19,12 @@ export const useAuthStore = create<AuthState>((set) => ({
   email: null,
   name: null,
   accessToken: null,
+  setAccessToken: (accessToken) =>
+    set((state) => ({
+      ...state,
+      isAuthenticated: true,
+      accessToken
+    })),
   setAuth: ({ email, accessToken, name }) =>
     set({
       isAuthenticated: true,

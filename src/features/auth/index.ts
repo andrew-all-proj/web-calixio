@@ -1,5 +1,6 @@
 export { LoginForm } from './login'
 export { RegisterForm } from './register'
+export { AuthPanel } from './ui/AuthPanel'
 export { authApi } from './api'
 export type { AuthCredentials, AuthTokens, RegisterPayload } from './api'
 export { useAuthStore } from './model/useAuthStore'

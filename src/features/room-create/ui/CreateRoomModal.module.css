@@ -1,0 +1,50 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  background: rgba(5, 7, 15, 0.75);
+  backdrop-filter: blur(8px);
+  padding: 24px;
+}
+
+.modal {
+  position: relative;
+  width: min(620px, 100%);
+  display: grid;
+  gap: 16px;
+}
+
+.close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  color: var(--color-text-muted);
+  background: var(--color-panel-soft);
+  cursor: pointer;
+}
+
+.modal h2 {
+  margin: 0;
+}
+
+.group {
+  display: grid;
+  gap: 8px;
+}
+
+.group label,
+.group span {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+.error {
+  margin: 0;
+  color: var(--color-danger);
+}

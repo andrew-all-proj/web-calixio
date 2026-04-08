@@ -1,0 +1,63 @@
+.card {
+  padding: 18px;
+  display: grid;
+  gap: 16px;
+  cursor: pointer;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.card:hover {
+  transform: translateY(-3px);
+  border-color: var(--color-brand-start);
+}
+
+.top {
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.top h3 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.top p {
+  margin: 6px 0 0;
+  color: var(--color-text-muted);
+}
+
+.live,
+.paused {
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  height: fit-content;
+}
+
+.live {
+  color: var(--color-success);
+  background: color-mix(in srgb, var(--color-success) 15%, transparent);
+}
+
+.paused {
+  color: #facc15;
+  background: color-mix(in srgb, #facc15 15%, transparent);
+}
+
+.meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--color-text-subtle);
+  font-size: 0.86rem;
+}
+
+.enter {
+  border: 1px solid var(--color-border);
+  background: var(--color-panel-soft);
+  color: var(--color-text-main);
+  border-radius: 12px;
+  min-height: 42px;
+  cursor: pointer;
+}

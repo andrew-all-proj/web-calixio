@@ -1,301 +1,161 @@
-import { FormEvent, useEffect, useMemo, useRef, useState } from 'react'
-import { useTranslation } from 'react-i18next'
-import { useLocation } from 'react-router-dom'
-import { LocalAudioTrack, LocalVideoTrack } from 'livekit-client'
-import { roomApi } from '@/entities/room'
+import { useMemo, useState } from 'react'
+import { AnimatePresence, motion } from 'motion/react'
+import { useNavigate } from 'react-router-dom'
+import { roomApi, RoomListItem } from '@/entities/room'
 import { useAuthStore } from '@/features/auth'
-import { routePaths } from '@/shared/config/routes'
-import { useLocalTracks, useRoomConnection } from '../model'
-import { RoomActions, RoomWindow, ShareCard } from './'
+import { CreateRoomModal } from '@/features/room-create'
+import { Lock, Pause, Play, Plus, Search, Users } from 'lucide-react'
+import { useEffect } from 'react'
 import styles from './RoomsPage.module.css'
 
-const normalizeRoomId = (value: string) => {
-  const trimmed = value.trim()
-  if (!trimmed) {
-    return ''
-  }
-
-  try {
-    const url = new URL(trimmed)
-    const param = url.searchParams.get('roomId') || url.searchParams.get('room')
-    if (param) {
-      return param
-    }
-  } catch {
-    // Not a URL, continue.
-  }
-
-  return trimmed
-}
-
 const RoomsPage = () => {
-  const { t } = useTranslation()
-  const location = useLocation()
+  const navigate = useNavigate()
   const accessToken = useAuthStore((state) => state.accessToken)
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
-  const authName = useAuthStore((state) => state.name)
-  const [joinValue, setJoinValue] = useState('')
-  const [createName, setCreateName] = useState('')
-  const [joinError, setJoinError] = useState('')
-  const [createError, setCreateError] = useState('')
-  const [isJoining, setIsJoining] = useState(false)
-  const [isCreating, setIsCreating] = useState(false)
-  const [currentRoomId, setCurrentRoomId] = useState<string | null>(null)
-  const [copyState, setCopyState] = useState<'idle' | 'copied' | 'error'>('idle')
-  const [outputVolume, setOutputVolume] = useState(70)
-  const [displayName, setDisplayName] = useState('')
-  const hasManualName = useRef(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [rooms, setRooms] = useState<RoomListItem[]>([])
+  const [isLoadingRooms, setIsLoadingRooms] = useState(false)
+  const [roomsError, setRoomsError] = useState('')
 
-  const {
-    localAudioTrack,
-    localVideoTrack,
-    isMicEnabled,
-    isCamEnabled,
-    isDeviceInitializing,
-    micGain,
-    toggleMic,
-    toggleCam,
-    setMicGain
-  } = useLocalTracks()
-
-  const {
-    room,
-    remoteTracks,
-    connectWithToken,
-    leaveRoom,
-    clearRemoteTracks,
-    setOutputVolume: applyOutputVolume
-  } = useRoomConnection({
-    livekitUrl: import.meta.env.VITE_LIVEKIT_WS,
-    getParticipantLabel: (participant) =>
-      participant.identity || t('rooms.participant')
-  })
-
-  useEffect(() => {
-    const params = new URLSearchParams(location.search)
-    const roomId = params.get('roomId') || params.get('room')
-    if (roomId) {
-      setJoinValue(roomId)
-      setCurrentRoomId(roomId)
-    }
-  }, [location.search])
-
-  useEffect(() => {
-    if (currentRoomId) {
-      setCopyState('idle')
-    }
-  }, [currentRoomId])
-
-  useEffect(() => {
-    if (hasManualName.current) {
-      return
-    }
-
-    if (authName) {
-      setDisplayName(authName)
-    } else if (!displayName) {
-      const stored = localStorage.getItem('calixio.displayName')
-      if (stored) {
-        setDisplayName(stored)
-      } else {
-        setDisplayName(t('rooms.guest'))
-      }
-    }
-  }, [authName, displayName, t])
-
-  useEffect(() => {
-    if (!displayName.trim()) {
-      return
-    }
-    localStorage.setItem('calixio.displayName', displayName.trim())
-  }, [displayName])
-
-  useEffect(() => {
-    applyOutputVolume(outputVolume)
-  }, [applyOutputVolume, outputVolume])
-
-  useEffect(() => {
-    if (!room || (!localAudioTrack && !localVideoTrack)) {
-      return
-    }
-
-    const publishTrack = async (track: LocalAudioTrack | LocalVideoTrack) => {
-      const publications = room.localParticipant.trackPublications ?? new Map()
-      const hasTrack = Array.from(publications.values()).some(
-        (publication) => publication.track === track
-      )
-
-      if (!hasTrack) {
-        await room.localParticipant.publishTrack(track)
-      }
-    }
-
-    if (localAudioTrack) {
-      void publishTrack(localAudioTrack)
-    }
-
-    if (localVideoTrack) {
-      void publishTrack(localVideoTrack)
-    }
-  }, [room, localAudioTrack, localVideoTrack])
-
-  const joinRoom = async () => {
-    setJoinError('')
-
-    const roomId = normalizeRoomId(currentRoomId ?? joinValue)
-    if (!roomId) {
-      setJoinError(t('rooms.join.error'))
-      return
-    }
-
-    setIsJoining(true)
-
-    try {
-      const payload = displayName.trim()
-        ? { user_name: displayName.trim() }
-        : {}
-      const response = await roomApi.joinRoom(roomId, payload)
-      const token = response.token
-      const resolvedRoomId = response.room_id ?? response.id ?? response.roomId
-      const resolvedName = response.user_name
-
-      if (!token) {
-        setJoinError(t('rooms.join.tokenError'))
-        return
-      }
-
-      try {
-        await connectWithToken(token)
-        setCurrentRoomId(resolvedRoomId ?? null)
-        setJoinValue(resolvedRoomId ?? '')
-        if (resolvedName) {
-          setDisplayName(resolvedName)
-        }
-      } catch {
-        setJoinError(t('rooms.join.connectError'))
-      }
-    } catch {
-      setJoinError(t('rooms.join.requestError'))
-    } finally {
-      setIsJoining(false)
-    }
-  }
-
-  const handleCreate = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    setCreateError('')
-
+  const loadRooms = async () => {
     if (!accessToken) {
-      setCreateError(t('rooms.create.authError'))
+      setRooms([])
       return
     }
-
-    if (!createName.trim()) {
-      setCreateError(t('rooms.create.nameError'))
-      return
-    }
-
-    setIsCreating(true)
-
+    setIsLoadingRooms(true)
+    setRoomsError('')
     try {
-      const response = await roomApi.createRoom(accessToken, {
-        name: createName.trim()
-      })
-      const roomId = response.id ?? response.roomId ?? response.room_id
-      if (!roomId) {
-        setCreateError(t('rooms.create.idError'))
-        return
-      }
-
-      setCurrentRoomId(roomId)
-      setJoinValue(roomId)
-      setCreateName('')
+      const data = await roomApi.listMyRooms(accessToken)
+      setRooms(data)
     } catch {
-      setCreateError(t('rooms.create.requestError'))
+      setRoomsError('Не удалось загрузить список комнат')
     } finally {
-      setIsCreating(false)
+      setIsLoadingRooms(false)
     }
   }
 
-  const handleLeave = () => {
-    leaveRoom()
-    clearRemoteTracks()
-  }
+  useEffect(() => {
+    void loadRooms()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [accessToken])
 
-  const shareLink = useMemo(
+  const filteredRooms = useMemo(
     () =>
-      currentRoomId
-        ? `${window.location.origin}${routePaths.rooms}?roomId=${currentRoomId}`
-        : '',
-    [currentRoomId]
+      rooms.filter((room) =>
+        room.name.toLowerCase().includes(searchQuery.toLowerCase())
+      ),
+    [rooms, searchQuery]
   )
 
-  const handleCopy = async () => {
-    if (!shareLink) {
-      return
-    }
-
-    try {
-      await navigator.clipboard.writeText(shareLink)
-      setCopyState('copied')
-    } catch {
-      setCopyState('error')
-    }
-  }
-
-  const joinDisabled =
-    isJoining || (!currentRoomId && !joinValue.trim()) || Boolean(room)
-
-  const handleDisplayNameChange = (value: string) => {
-    hasManualName.current = true
-    setDisplayName(value)
-  }
-
   return (
-    <section className={styles.page}>
-      {!room ? (
-        <RoomActions
-          joinValue={joinValue}
-          createName={createName}
-          isAuthenticated={isAuthenticated}
-          isCreating={isCreating}
-          onJoinValueChange={setJoinValue}
-          onCreateNameChange={setCreateName}
-          onCreate={handleCreate}
-        />
-      ) : null}
-      {joinError ? <p className={styles.error}>{joinError}</p> : null}
-      {createError ? <p className={styles.error}>{createError}</p> : null}
-      <div className={styles.stage}>
-        <RoomWindow
-          isConnected={Boolean(room)}
-          isJoining={isJoining}
-          joinDisabled={joinDisabled}
-          localVideoTrack={localVideoTrack}
-          remoteTracks={remoteTracks}
-          onJoin={joinRoom}
-          onLeave={handleLeave}
-          isMicEnabled={isMicEnabled}
-          isCamEnabled={isCamEnabled}
-          isDeviceInitializing={isDeviceInitializing}
-          micGain={micGain}
-          outputVolume={outputVolume}
-          displayName={displayName}
-          onDisplayNameChange={handleDisplayNameChange}
-          onToggleMic={toggleMic}
-          onToggleCam={toggleCam}
-          onMicGainChange={setMicGain}
-          onOutputVolumeChange={setOutputVolume}
-        />
-      </div>
-      {currentRoomId ? (
-        <ShareCard
-          shareLink={shareLink}
-          copyState={copyState}
-          onCopy={handleCopy}
-        />
-      ) : null}
-    </section>
+    <>
+      <main className={styles.main}>
+        <header className={styles.header}>
+          <div>
+            <h1>Комнаты</h1>
+          </div>
+
+          <div className={styles.actions}>
+            <div className={styles.searchWrap}>
+              <Search size={18} className={styles.searchIcon} />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                placeholder="Поиск комнат..."
+                className={`glass-input ${styles.searchInput}`}
+              />
+            </div>
+
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              type="button"
+              className={`brand-button ${styles.createButton}`}
+              onClick={() => setShowCreateModal(true)}
+            >
+              <Plus size={18} />
+              <span>Создать комнату</span>
+            </motion.button>
+          </div>
+        </header>
+
+        {roomsError ? <p className={styles.error}>{roomsError}</p> : null}
+
+        <section className={styles.grid}>
+          <AnimatePresence>
+            {isLoadingRooms ? (
+              <p className={styles.empty}>Загрузка комнат...</p>
+            ) : null}
+            {filteredRooms.map((room, index) => (
+              <motion.article
+                key={room.id}
+                className={styles.card}
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 12 }}
+                transition={{ duration: 0.25, delay: index * 0.05 }}
+                whileHover={{ y: -6, scale: 1.01 }}
+                onClick={() => navigate(`/room/${room.id}`)}
+              >
+                  <div className={styles.cardGlow} />
+
+                  <div className={styles.cardHeader}>
+                    <div className={styles.cardTitle}>
+                      <h2>{room.name}</h2>
+                      <p>Комната владельца</p>
+                    </div>
+
+                    <div className={styles.cardMeta}>
+                      <Lock size={15} className={styles.metaIcon} />
+
+                      <span
+                        className={`${styles.status} ${
+                          room.status === 'active' ? styles.statusLive : styles.statusPaused
+                        }`}
+                      >
+                        {room.status === 'active' ? <Play size={11} /> : <Pause size={11} />}
+                        {room.status === 'active' ? 'Live' : 'Paused'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className={styles.participants}>
+                    <div className={styles.avatars}>
+                      <span className={styles.avatar}>В</span>
+                    </div>
+
+                    <span className={styles.count}>
+                      <Users size={14} />
+                      1
+                    </span>
+                  </div>
+
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    type="button"
+                    className={styles.enterButton}
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      navigate(`/room/${room.id}`)
+                    }}
+                  >
+                    Войти в комнату
+                  </motion.button>
+              </motion.article>
+            ))}
+          </AnimatePresence>
+        </section>
+      </main>
+      <CreateRoomModal
+        isOpen={showCreateModal}
+        onClose={() => {
+          setShowCreateModal(false)
+          void loadRooms()
+        }}
+      />
+    </>
   )
 }
 

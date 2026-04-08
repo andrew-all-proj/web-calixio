@@ -1,6 +1,10 @@
-import axios from 'axios'
+import axios, { AxiosHeaders } from 'axios'
+import { useAuthStore } from '@/features/auth/model/useAuthStore'
 
-const baseURL = import.meta.env.VITE_API_BASE ?? '/api'
+const baseURL =
+  import.meta.env.VITE_API_BASE ??
+  import.meta.env.VITE_API_BASE_URL ??
+  '/api'
 
 export const apiClient = axios.create({
   baseURL,
@@ -10,7 +14,6 @@ export const apiClient = axios.create({
   }
 })
 
-let isRefreshing = false
 let refreshPromise: Promise<string | null> | null = null
 
 const refreshAccessToken = async () => {
@@ -18,11 +21,26 @@ const refreshAccessToken = async () => {
     const response = await apiClient.post<{ accessToken?: string; token?: string }>(
       '/auth/refresh'
     )
-    return response.data.accessToken ?? response.data.token ?? null
+    const nextToken = response.data.accessToken ?? response.data.token ?? null
+    if (nextToken) {
+      useAuthStore.getState().setAccessToken(nextToken)
+      apiClient.defaults.headers.common.Authorization = `Bearer ${nextToken}`
+    }
+    return nextToken
   } catch {
     return null
   }
 }
+
+apiClient.interceptors.request.use((config) => {
+  const token = useAuthStore.getState().accessToken
+  if (token) {
+    const headers = AxiosHeaders.from(config.headers ?? {})
+    headers.set('Authorization', `Bearer ${token}`)
+    config.headers = headers
+  }
+  return config
+})
 
 apiClient.interceptors.response.use(
   (response) => response,
@@ -32,13 +50,11 @@ apiClient.interceptors.response.use(
     if (
       error?.response?.status === 401 &&
       originalRequest &&
-      !originalRequest._retry
+      !originalRequest._retry &&
+      !String(originalRequest?.url ?? '').includes('/auth/refresh')
     ) {
       if (!refreshPromise) {
-        isRefreshing = true
-        refreshPromise = refreshAccessToken().finally(() => {
-          isRefreshing = false
-        })
+        refreshPromise = refreshAccessToken()
       }
 
       const accessToken = await refreshPromise

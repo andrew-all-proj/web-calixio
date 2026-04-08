@@ -1,17 +1,38 @@
 :root {
-  font-family: "Manrope", "Segoe UI", sans-serif;
-  color: #1f2430;
-  background-color: #f5f7fb;
+  color-scheme: dark;
+  font-family: 'Manrope', 'Segoe UI', sans-serif;
+
+  --bg-page: radial-gradient(circle at 20% 10%, #121629 0%, #0e1222 35%, #080b14 100%);
+
+  --color-text-main: #f5f7ff;
+  --color-text-muted: #c4cce6;
+  --color-text-subtle: #8f9ab9;
+
+  --color-brand-start: #2563eb;
+  --color-brand-end: #7c3aed;
+
+  --color-success: #34d399;
+  --color-danger: #f87171;
+
+  --color-border: rgba(209, 218, 255, 0.15);
+  --color-panel-bg: rgba(13, 18, 34, 0.55);
+  --color-panel-soft: rgba(255, 255, 255, 0.08);
 }
 
 * {
   box-sizing: border-box;
 }
 
-body {
+html,
+body,
+#root {
   margin: 0;
   min-height: 100vh;
-  background: radial-gradient(circle at top, #ffffff 0%, #f5f7fb 40%, #e9edf6 100%);
+}
+
+body {
+  color: var(--color-text-main);
+  background: var(--bg-page);
 }
 
 a {
@@ -24,4 +45,55 @@ input,
 select,
 textarea {
   font: inherit;
+}
+
+.glass-card {
+  border: 1px solid var(--color-border);
+  background: var(--color-panel-bg);
+  backdrop-filter: blur(20px);
+  border-radius: 20px;
+  padding: 20px;
+}
+
+.glass-input {
+  width: 100%;
+  min-height: 46px;
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+  background: var(--color-panel-soft);
+  color: var(--color-text-main);
+  padding: 0 14px;
+}
+
+.glass-input::placeholder {
+  color: var(--color-text-subtle);
+}
+
+.glass-input:focus {
+  outline: none;
+  border-color: color-mix(in srgb, var(--color-brand-start) 58%, transparent);
+}
+
+.brand-button {
+  border: none;
+  border-radius: 12px;
+  min-height: 46px;
+  color: var(--color-text-main);
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0 16px;
+  background: linear-gradient(135deg, var(--color-brand-start), var(--color-brand-end));
+  box-shadow: 0 10px 28px color-mix(in srgb, var(--color-brand-start) 52%, transparent);
+  transition: transform 180ms ease, box-shadow 180ms ease, filter 180ms ease;
+}
+
+.brand-button:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+  box-shadow: 0 14px 32px color-mix(in srgb, var(--color-brand-end) 52%, transparent);
+}
+
+.brand-button:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
 }

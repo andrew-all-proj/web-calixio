@@ -1,0 +1,158 @@
+.card {
+  display: grid;
+  gap: 18px;
+  animation: cardIn 460ms ease both;
+  animation-delay: 80ms;
+}
+
+.switcher {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  padding: 6px;
+  border-radius: 14px;
+  background: var(--color-panel-soft);
+}
+
+.switcher button {
+  border: none;
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  background: transparent;
+  cursor: pointer;
+}
+
+.switcher .active {
+  color: var(--color-text-main);
+  background: linear-gradient(135deg, var(--color-brand-start), var(--color-brand-end));
+}
+
+.form {
+  display: grid;
+  gap: 12px;
+}
+
+.field {
+  position: relative;
+}
+
+.leadingIcon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-text-subtle);
+  width: 18px;
+  height: 18px;
+  pointer-events: none;
+}
+
+.leadingIcon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.inputWithIcon {
+  padding-left: 62px;
+}
+
+.inputWithAction {
+  padding-right: 46px;
+}
+
+.eyeButton {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%);
+  border: none;
+  background: transparent;
+  color: var(--color-text-subtle);
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  cursor: pointer;
+}
+
+.eyeButton svg {
+  width: 100%;
+  height: 100%;
+}
+
+.passwordStrength {
+  display: grid;
+  gap: 6px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.passwordStrength span {
+  height: 5px;
+  border-radius: 999px;
+  background: var(--color-panel-soft);
+}
+
+.passwordStrength .filled {
+  background: var(--color-success);
+}
+
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.88rem;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.checkboxBox {
+  position: relative;
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+}
+
+.checkboxInput {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  appearance: none;
+  background: var(--color-panel-soft);
+  cursor: pointer;
+}
+
+.checkboxInput:checked {
+  background: linear-gradient(135deg, var(--color-brand-start), var(--color-brand-end));
+  border-color: transparent;
+}
+
+.checkboxTick {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  color: var(--color-text-main);
+  pointer-events: none;
+}
+
+.error {
+  margin: 0;
+  color: var(--color-danger);
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+@keyframes cardIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

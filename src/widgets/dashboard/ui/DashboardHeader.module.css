@@ -1,0 +1,30 @@
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: clamp(1.8rem, 2.8vw, 2.4rem);
+}
+
+.header p {
+  margin: 6px 0 0;
+  color: var(--color-text-muted);
+}
+
+.actions {
+  width: min(460px, 100%);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+}
+
+@media (max-width: 700px) {
+  .actions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

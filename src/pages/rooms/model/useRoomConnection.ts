@@ -26,6 +26,7 @@ export const useRoomConnection = ({
   getParticipantLabel
 }: UseRoomConnectionOptions): UseRoomConnectionResult => {
   const [room, setRoom] = useState<Room | null>(null)
+  const roomRef = useRef<Room | null>(null)
   const [remoteTracks, setRemoteTracks] = useState<VideoTrackItem[]>([])
   const audioElements = useRef<Map<string, HTMLMediaElement>>(new Map())
   const audioTracksRef = useRef<RemoteAudioTrack[]>([])
@@ -52,26 +53,37 @@ export const useRoomConnection = ({
         throw new Error('livekit_url_missing')
       }
 
+      roomRef.current?.disconnect()
+      roomRef.current = null
+      setRoom(null)
+      setRemoteTracks([])
+
       const nextRoom = new Room()
 
       const addRemoteTrack = (track: Track, participant: RemoteParticipant) => {
         if (track.kind !== Track.Kind.Video) {
           return
         }
+        if (participant.identity === nextRoom.localParticipant.identity) {
+          return
+        }
 
         setRemoteTracks((prev) => {
-          if (prev.some((item) => item.track === track)) {
-            return prev
+          const participantKey = participant.sid
+          const nextItem: VideoTrackItem = {
+            id: participantKey,
+            label: getParticipantLabel(participant),
+            track
           }
 
-          return [
-            ...prev,
-            {
-              id: track.sid ?? `${participant.sid}-${track.kind}`,
-              label: getParticipantLabel(participant),
-              track
-            }
-          ]
+          const existingIndex = prev.findIndex((item) => item.id === participantKey)
+          if (existingIndex === -1) {
+            return [...prev, nextItem]
+          }
+
+          const next = [...prev]
+          next[existingIndex] = nextItem
+          return next
         })
       }
 
@@ -105,28 +117,35 @@ export const useRoomConnection = ({
         if (track.kind !== Track.Kind.Video) {
           return
         }
-        setRemoteTracks((prev) => prev.filter((item) => item.track !== track))
+        setRemoteTracks((prev) =>
+          prev.filter((item) => item.id !== participant.sid && item.track !== track)
+        )
       })
 
-    nextRoom.on(RoomEvent.Disconnected, () => {
-      audioElements.current.forEach((element, key) => {
-        element.remove()
-        audioElements.current.delete(key)
+      nextRoom.on(RoomEvent.Disconnected, () => {
+        audioElements.current.forEach((element, key) => {
+          element.remove()
+          audioElements.current.delete(key)
+        })
+        audioTracksRef.current = []
+        roomRef.current = null
+        setRoom(null)
+        setRemoteTracks([])
       })
-      audioTracksRef.current = []
-      setRoom(null)
-      setRemoteTracks([])
-    })
 
       await nextRoom.connect(livekitUrl, token)
+      roomRef.current = nextRoom
       setRoom(nextRoom)
     },
     [getParticipantLabel, livekitUrl]
   )
 
   const leaveRoom = useCallback(() => {
-    room?.disconnect()
-  }, [room])
+    roomRef.current?.disconnect()
+    roomRef.current = null
+    setRoom(null)
+    setRemoteTracks([])
+  }, [])
 
   return {
     room,

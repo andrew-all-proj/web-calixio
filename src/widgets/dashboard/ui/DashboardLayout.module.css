@@ -1,0 +1,11 @@
+.layout {
+  min-height: 100dvh;
+  display: grid;
+  grid-template-columns: 74px minmax(0, 1fr);
+}
+
+@media (min-width: 1024px) {
+  .layout {
+    grid-template-columns: 250px minmax(0, 1fr);
+  }
+}

@@ -1,0 +1,46 @@
+.page {
+  min-height: 100vh;
+  position: relative;
+  overflow: hidden;
+  background: var(--bg-page);
+}
+
+.grid {
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(
+      to right,
+      rgba(255, 255, 255, 0.035) 1px,
+      transparent 1px
+    ),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+  background-size: 42px 42px;
+  opacity: 0.3;
+}
+
+.glowLeft,
+.glowRight {
+  position: absolute;
+  width: min(46vw, 560px);
+  aspect-ratio: 1;
+  filter: blur(120px);
+  border-radius: 50%;
+  opacity: 0.42;
+}
+
+.glowLeft {
+  background: radial-gradient(circle, var(--color-brand-start), transparent 65%);
+  left: -180px;
+  top: -120px;
+}
+
+.glowRight {
+  background: radial-gradient(circle, var(--color-brand-end), transparent 65%);
+  right: -180px;
+  bottom: -150px;
+}
+
+.content {
+  position: relative;
+  z-index: 1;
+}

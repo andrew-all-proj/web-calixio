@@ -69,7 +69,11 @@ interface UseLocalTracksResult {
   isCamEnabled: boolean
   isDeviceInitializing: boolean
   micGain: number
-  ensureLocalTracks: (options: { audio?: boolean; video?: boolean }) => Promise<void>
+  ensureLocalTracks: (options: {
+    audio?: boolean
+    video?: boolean
+    forcePrompt?: boolean
+  }) => Promise<void>
   toggleMic: () => Promise<void>
   toggleCam: () => Promise<void>
   setMicGain: (value: number) => void
@@ -86,18 +90,29 @@ export const useLocalTracks = (): UseLocalTracksResult => {
   const [isCamEnabled, setIsCamEnabled] = useState(false)
   const [isDeviceInitializing, setIsDeviceInitializing] = useState(false)
   const [micGain, setMicGainState] = useState(80)
+  const permissionDeniedRef = useRef<{ audio: boolean; video: boolean }>({
+    audio: false,
+    video: false
+  })
+  const didAutoInitRef = useRef(false)
   const audioContextRef = useRef<AudioContext | null>(null)
   const gainNodeRef = useRef<GainNode | null>(null)
   const destinationTrackRef = useRef<MediaStreamTrack | null>(null)
 
   const ensureLocalTracks = useCallback(
-    async (options: { audio?: boolean; video?: boolean }) => {
+    async (options: { audio?: boolean; video?: boolean; forcePrompt?: boolean }) => {
       if (isDeviceInitializing) {
         return
       }
 
-      const shouldCreateAudio = options.audio && !localAudioTrack
-      const shouldCreateVideo = options.video && !localVideoTrack
+      const shouldCreateAudio =
+        Boolean(options.audio) &&
+        !localAudioTrack &&
+        (!permissionDeniedRef.current.audio || Boolean(options.forcePrompt))
+      const shouldCreateVideo =
+        Boolean(options.video) &&
+        !localVideoTrack &&
+        (!permissionDeniedRef.current.video || Boolean(options.forcePrompt))
 
       if (!shouldCreateAudio && !shouldCreateVideo) {
         return
@@ -119,16 +134,33 @@ export const useLocalTracks = (): UseLocalTracksResult => {
         ) as LocalVideoTrack | undefined
 
         if (audioTrack) {
+          permissionDeniedRef.current.audio = false
           setLocalAudioTrack(audioTrack)
           setIsMicEnabled(getTrackEnabled(audioTrack))
         }
 
         if (videoTrack) {
+          permissionDeniedRef.current.video = false
           setLocalVideoTrack(videoTrack)
           setIsCamEnabled(getTrackEnabled(videoTrack))
         }
-      } catch {
-        // Ignore device errors; controls can retry on click.
+      } catch (error) {
+        const errName =
+          typeof error === 'object' && error !== null && 'name' in error
+            ? String((error as { name?: unknown }).name ?? '')
+            : ''
+        const isPermissionDenied =
+          errName === 'NotAllowedError' ||
+          errName === 'PermissionDeniedError' ||
+          errName === 'SecurityError'
+        if (isPermissionDenied) {
+          if (shouldCreateAudio) {
+            permissionDeniedRef.current.audio = true
+          }
+          if (shouldCreateVideo) {
+            permissionDeniedRef.current.video = true
+          }
+        }
       } finally {
         setIsDeviceInitializing(false)
       }
@@ -137,6 +169,10 @@ export const useLocalTracks = (): UseLocalTracksResult => {
   )
 
   useEffect(() => {
+    if (didAutoInitRef.current) {
+      return
+    }
+    didAutoInitRef.current = true
     void ensureLocalTracks({ audio: true, video: false })
   }, [ensureLocalTracks])
 
@@ -175,8 +211,15 @@ export const useLocalTracks = (): UseLocalTracksResult => {
 
       const processedTrack = destination.stream.getAudioTracks()[0]
       if (processedTrack) {
-        await localAudioTrack.replaceTrack(processedTrack, true)
-        destinationTrackRef.current = processedTrack
+        try {
+          await localAudioTrack.replaceTrack(processedTrack, true)
+          destinationTrackRef.current = processedTrack
+        } catch {
+          // Track can be unpublished at this point in lifecycle.
+          processedTrack.stop()
+          audioContext.close()
+          return
+        }
       }
 
       audioContextRef.current = audioContext
@@ -188,7 +231,7 @@ export const useLocalTracks = (): UseLocalTracksResult => {
 
   const toggleMic = useCallback(async () => {
     if (!localAudioTrack) {
-      await ensureLocalTracks({ audio: true })
+      await ensureLocalTracks({ audio: true, forcePrompt: true })
       return
     }
     const next = !getTrackEnabled(localAudioTrack)
@@ -198,7 +241,7 @@ export const useLocalTracks = (): UseLocalTracksResult => {
 
   const toggleCam = useCallback(async () => {
     if (!localVideoTrack) {
-      await ensureLocalTracks({ video: true })
+      await ensureLocalTracks({ video: true, forcePrompt: true })
       return
     }
     const next = !getTrackEnabled(localVideoTrack)
