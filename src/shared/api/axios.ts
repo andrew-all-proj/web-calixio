@@ -2,8 +2,8 @@ import axios, { AxiosHeaders } from 'axios'
 import { useAuthStore } from '@/features/auth/model/useAuthStore'
 
 const baseURL =
-  import.meta.env.VITE_API_BASE ??
   import.meta.env.VITE_API_BASE_URL ??
+  import.meta.env.VITE_API_BASE ??
   '/api'
 
 export const apiClient = axios.create({

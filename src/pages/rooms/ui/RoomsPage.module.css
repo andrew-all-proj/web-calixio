@@ -210,6 +210,30 @@
   background: color-mix(in srgb, var(--color-panel-soft) 76%, transparent);
 }
 
+.endButton {
+  width: 100%;
+  min-height: 36px;
+  border-radius: 10px;
+  border: 1px solid rgba(248, 113, 113, 0.35);
+  background: rgba(127, 29, 29, 0.18);
+  color: #fecaca;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.endButton:hover:not(:disabled) {
+  background: rgba(127, 29, 29, 0.28);
+}
+
+.endButton:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
 @media (max-width: 860px) {
   .main {
     padding: 22px 12px 14px;

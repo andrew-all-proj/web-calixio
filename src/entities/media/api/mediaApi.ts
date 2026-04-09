@@ -2,8 +2,8 @@ import { apiClient } from '@/shared/api'
 import { MediaItem } from '../types'
 
 const apiBaseURL =
-  import.meta.env.VITE_API_BASE ??
   import.meta.env.VITE_API_BASE_URL ??
+  import.meta.env.VITE_API_BASE ??
   '/api'
 
 export const resolvePlaybackManifestURL = (manifestURL?: string | null) => {

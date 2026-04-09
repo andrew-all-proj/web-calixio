@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { roomApi, RoomListItem } from '@/entities/room'
 import { useAuthStore } from '@/features/auth'
 import { CreateRoomModal } from '@/features/room-create'
-import { Lock, Pause, Play, Plus, Search, Users } from 'lucide-react'
+import { Lock, Pause, Play, Plus, Search, Square, Users } from 'lucide-react'
 import { useEffect } from 'react'
 import styles from './RoomsPage.module.css'
 
@@ -16,6 +16,7 @@ const RoomsPage = () => {
   const [rooms, setRooms] = useState<RoomListItem[]>([])
   const [isLoadingRooms, setIsLoadingRooms] = useState(false)
   const [roomsError, setRoomsError] = useState('')
+  const [endingRoomId, setEndingRoomId] = useState<string | null>(null)
 
   const loadRooms = async () => {
     if (!accessToken) {
@@ -46,6 +47,23 @@ const RoomsPage = () => {
       ),
     [rooms, searchQuery]
   )
+
+  const handleEndRoom = async (roomId: string) => {
+    if (!accessToken || endingRoomId === roomId) {
+      return
+    }
+
+    setEndingRoomId(roomId)
+    setRoomsError('')
+    try {
+      await roomApi.endRoom(roomId, accessToken)
+      await loadRooms()
+    } catch {
+      setRoomsError('Не удалось закрыть комнату')
+    } finally {
+      setEndingRoomId(null)
+    }
+  }
 
   return (
     <>
@@ -143,6 +161,25 @@ const RoomsPage = () => {
                   >
                     Войти в комнату
                   </motion.button>
+
+                  {room.status === 'active' ? (
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      type="button"
+                      className={styles.endButton}
+                      disabled={endingRoomId === room.id}
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        void handleEndRoom(room.id)
+                      }}
+                    >
+                      <Square size={14} />
+                      <span>
+                        {endingRoomId === room.id ? 'Закрываем...' : 'Закрыть комнату'}
+                      </span>
+                    </motion.button>
+                  ) : null}
               </motion.article>
             ))}
           </AnimatePresence>
