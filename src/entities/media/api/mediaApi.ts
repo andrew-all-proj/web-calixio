@@ -1,10 +1,7 @@
-import { apiClient } from '@/shared/api'
+import { apiClient, resolveApiBaseURL } from '@/shared/api'
 import { MediaItem } from '../types'
 
-const apiBaseURL =
-  import.meta.env.VITE_API_BASE_URL ??
-  import.meta.env.VITE_API_BASE ??
-  '/api'
+const apiBaseURL = resolveApiBaseURL()
 
 export const resolvePlaybackManifestURL = (manifestURL?: string | null) => {
   if (!manifestURL) {

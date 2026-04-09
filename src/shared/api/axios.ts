@@ -1,10 +1,25 @@
 import axios, { AxiosHeaders } from 'axios'
 import { useAuthStore } from '@/features/auth/model/useAuthStore'
 
-const baseURL =
-  import.meta.env.VITE_API_BASE_URL ??
-  import.meta.env.VITE_API_BASE ??
-  '/api'
+export const resolveApiBaseURL = () => {
+  const configuredBaseURL = import.meta.env.VITE_API_BASE_URL?.trim()
+  if (configuredBaseURL) {
+    return configuredBaseURL
+  }
+
+  const configuredBasePath = import.meta.env.VITE_API_BASE?.trim()
+  if (configuredBasePath) {
+    return configuredBasePath
+  }
+
+  if (typeof window !== 'undefined' && window.location.hostname === 'calixio.managetlg.com') {
+    return 'https://api.calixio.managetlg.com'
+  }
+
+  return '/api'
+}
+
+const baseURL = resolveApiBaseURL()
 
 export const apiClient = axios.create({
   baseURL,
