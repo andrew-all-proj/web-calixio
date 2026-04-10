@@ -218,6 +218,33 @@
   border-color: color-mix(in srgb, var(--color-danger) 74%, transparent);
 }
 
+.completeButton {
+  position: absolute;
+  right: 46px;
+  bottom: 10px;
+  width: 30px;
+  height: 30px;
+  border: 1px solid color-mix(in srgb, var(--color-brand-start) 52%, transparent);
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  color: var(--color-brand-start);
+  background: color-mix(in srgb, var(--color-panel-bg) 92%, transparent);
+  cursor: pointer;
+  transition: transform 140ms ease, background-color 140ms ease, border-color 140ms ease;
+}
+
+.completeButton:hover:not(:disabled) {
+  transform: translateY(-1px);
+  background: color-mix(in srgb, var(--color-brand-start) 12%, var(--color-panel-bg));
+  border-color: color-mix(in srgb, var(--color-brand-start) 74%, transparent);
+}
+
+.completeButton:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
 .empty {
   min-height: 44vh;
   display: grid;

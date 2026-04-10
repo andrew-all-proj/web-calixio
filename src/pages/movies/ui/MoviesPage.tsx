@@ -7,6 +7,7 @@ import {
   Loader2,
   Play,
   Plus,
+  RefreshCw,
   Search,
   Trash2,
   Upload,
@@ -109,6 +110,8 @@ const MoviesPage = () => {
   const [movieToDelete, setMovieToDelete] = useState<MediaItem | null>(null)
   const [isDeletingMovie, setIsDeletingMovie] = useState(false)
   const [deleteMovieError, setDeleteMovieError] = useState('')
+  const [completingMovieId, setCompletingMovieId] = useState<string | null>(null)
+  const [completeMovieError, setCompleteMovieError] = useState('')
 
   const loadMovies = async () => {
     if (!accessToken) {
@@ -166,6 +169,39 @@ const MoviesPage = () => {
     }
   }
 
+  const handleCompleteUpload = async (movie: MediaItem) => {
+    if (completingMovieId) {
+      return
+    }
+    if (!accessToken) {
+      setCompleteMovieError('Нужна авторизация для завершения загрузки файла')
+      return
+    }
+
+    setCompletingMovieId(movie.id)
+    setCompleteMovieError('')
+    try {
+      const response = await mediaApi.completeUpload(accessToken, { mediaId: movie.id })
+
+      setMovies((prev) =>
+        prev.map((item) =>
+          item.id === movie.id
+            ? {
+                ...item,
+                status: response.status
+              }
+            : item
+        )
+      )
+
+      await loadMovies()
+    } catch {
+      setCompleteMovieError('Не удалось завершить загрузку файла. Повторите попытку.')
+    } finally {
+      setCompletingMovieId(null)
+    }
+  }
+
   return (
     <>
       <main className={styles.main}>
@@ -200,6 +236,7 @@ const MoviesPage = () => {
         </header>
 
         {moviesError ? <p className={styles.error}>{moviesError}</p> : null}
+        {completeMovieError ? <p className={styles.error}>{completeMovieError}</p> : null}
 
         {isLoadingMovies ? (
           <section className={styles.empty}>
@@ -280,6 +317,25 @@ const MoviesPage = () => {
                   >
                     <Trash2 size={15} />
                   </button>
+
+                  {['uploading', 'failed'].includes(movie.status.trim().toLowerCase()) ? (
+                    <button
+                      type="button"
+                      className={styles.completeButton}
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        void handleCompleteUpload(movie)
+                      }}
+                      disabled={completingMovieId === movie.id}
+                      aria-label={`Завершить загрузку фильма ${movie.title}`}
+                    >
+                      {completingMovieId === movie.id ? (
+                        <Loader2 size={15} className={styles.spin} />
+                      ) : (
+                        <RefreshCw size={15} />
+                      )}
+                    </button>
+                  ) : null}
               </motion.article>
             ))}
           </section>
