@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import Hls from 'hls.js'
+import { isAxiosError } from 'axios'
 import {
   Clock,
   Film,
@@ -195,8 +196,12 @@ const MoviesPage = () => {
       )
 
       await loadMovies()
-    } catch {
-      setCompleteMovieError('Не удалось завершить загрузку файла. Повторите попытку.')
+    } catch (error) {
+      if (isAxiosError(error) && error.response?.data?.error === 'uploaded_object_not_found') {
+        setCompleteMovieError('Исходный файл не найден в хранилище. Загрузите фильм заново.')
+      } else {
+        setCompleteMovieError('Не удалось завершить загрузку файла. Повторите попытку.')
+      }
     } finally {
       setCompletingMovieId(null)
     }
